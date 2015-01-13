@@ -32,6 +32,7 @@ void draw_text(float x, float y, float r, float g, float b, float a,
     y += totalHeight / 2;
   }
 
+  glBegin(GL_QUADS);
   glColor4f(r, g, b, a);
 
   double total_size = 5 * cell_size + 4 * cell_division_size + char_space_size;
@@ -57,4 +58,5 @@ void draw_text(float x, float y, float r, float g, float b, float a,
 
     currentX += (total_size * char_size) / aspect_ratio;
   }
+  glEnd();
 }
