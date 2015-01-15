@@ -47,6 +47,8 @@ enum cell_type {
   Block,
   RoundBlock,
   GreenBomb,
+  YellowBomb,
+  YellowBombTrigger,
   RedBomb,
   Explosion,
   ItemDude,
@@ -80,20 +82,23 @@ struct cell_state {
   }
   bool is_bomb() const {
     return (this->type == GreenBomb) || (this->type == RedBomb) ||
-           (this->type == ItemDude) || (this->type == BombDude);
+           (this->type == YellowBomb) || (this->type == ItemDude) ||
+           (this->type == BombDude);
   }
   bool is_volatile() const {
     return (this->type == Player) || this->is_dude() || this->is_bomb();
   }
   bool is_edible() const {
     return (this->type == Empty) || (this->type == Circuit) ||
-           (this->type == Item) || (this->type == RedBomb);
+           (this->type == Item) || (this->type == RedBomb) ||
+           (this->type == YellowBombTrigger);
   }
   bool is_pushable_horizontal() const {
-    return (this->type == Rock) || (this->type == GreenBomb);
+    return (this->type == Rock) || (this->type == GreenBomb) ||
+           (this->type == YellowBomb);
   }
   bool is_pushable_vertical() const {
-    return false;
+    return (this->type == YellowBomb);
   }
   bool is_dude() const {
     return (this->type == ItemDude) || (this->type == BombDude);
@@ -342,6 +347,12 @@ void exec_frame(level_state& l, enum player_impulse impulse) {
     }
 
     if (player_target_cell->is_edible()) {
+      if (player_target_cell->type == YellowBombTrigger)
+        for (int yy = 0; yy < l.h; yy++)
+          for (int xx = 0; xx < l.w; xx++)
+            if (l.at(xx, yy).type == YellowBomb)
+              l.pending_explosions.emplace_back(xx, yy);
+
       *player_target_cell = l.at(l.player_x, l.player_y);
       if (l.player_will_drop_bomb) {
         l.num_red_bombs--;
@@ -409,9 +420,16 @@ void render_level_state(const level_state& l, int window_w, int window_h) {
           glColor4f(0.0, 1.0, 0.0, 1.0);
           draw_center = true;
           break;
+        case YellowBomb:
+          glColor4f(0.8, 0.8, 0.0, 1.0);
+          draw_center = true;
+          break;
         case RedBomb:
           glColor4f(param ? ((float)param / 256) : 1.0, 0.0, 0.0, 1.0);
           draw_center = true;
+          break;
+        case YellowBombTrigger:
+          glColor4f(0.8, 0.8, 0.0, 1.0);
           break;
         case Explosion:
           glColor4f((float)param / 256, (float)param / 512, 0.0, 1.0);
@@ -568,8 +586,6 @@ level_state load_level(const char* filename, int level_index) {
           l.at(x, y) = cell_state(RoundBlock);
           break;
         case 0x06: // block
-        case 0x12: // yellow bomb (TODO)
-        case 0x13: // terminal (TODO)
         case 0x1C: // small components (TODO)
         case 0x1D: // green dot (TODO)
         case 0x1E: // blue dot (TODO)
@@ -588,14 +604,20 @@ level_state load_level(const char* filename, int level_index) {
         case 0x08: // green bomb
           l.at(x, y) = cell_state(GreenBomb);
           break;
+        case 0x12: // yellow bomb
+          l.at(x, y) = cell_state(YellowBomb);
+          break;
         case 0x14: // red bomb
           l.at(x, y) = cell_state(RedBomb);
           break;
+        case 0x13: // terminal
+          l.at(x, y) = cell_state(YellowBombTrigger);
+          break;
         case 0x11: // scissors
-          l.at(x, y) = cell_state(BombDude, Left);
+          l.at(x, y) = cell_state(BombDude, Up);
           break;
         case 0x18: // spark
-          l.at(x, y) = cell_state(ItemDude, Left);
+          l.at(x, y) = cell_state(ItemDude, Up);
           break;
         default:
           l.at(x, y) = cell_state(Empty, 255);
