@@ -258,7 +258,7 @@ void exec_frame(level_state& l, enum player_impulse impulse) {
     if (player_target_cell->type == RedBomb)
       l.num_red_bombs++;
     if ((player_target_cell->type == Exit) && (l.num_red_bombs >= 0) &&
-        (l.num_items_remaining == 0))
+        (l.num_items_remaining <= 0))
       l.player_did_win = true;
 
     // if the player is pushing something, move it out of the way first
