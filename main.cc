@@ -553,14 +553,19 @@ void render_stripe_animation(int window_w, int window_h, int stripe_width) {
 level_state game;
 bool paused = true;
 bool player_did_lose = false;
+bool should_reload_state = false;
 enum player_impulse current_impulse = None;
 
 static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
     int action, int mods) {
 
   if (action == GLFW_PRESS || action == GLFW_REPEAT) {
-    if (key == GLFW_KEY_ESCAPE)
-      glfwSetWindowShouldClose(window, 1);
+    if (key == GLFW_KEY_ESCAPE) {
+      if (mods & GLFW_MOD_SHIFT)
+        should_reload_state = true;
+      else
+        glfwSetWindowShouldClose(window, 1);
+    }
     if (key == GLFW_KEY_ENTER) {
       paused = !paused;
       player_did_lose = false;
@@ -656,6 +661,11 @@ int main(int argc, char* argv[]) {
       game = initial_state;
     } else if (game.player_did_win) {
       paused = true;
+
+    } else if (should_reload_state) {
+      paused = true;
+      game = initial_state;
+      should_reload_state = false;
 
     } else {
       uint64_t now_time = now();
