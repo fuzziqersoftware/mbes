@@ -35,7 +35,6 @@ enum player_impulse {
 enum block_fall_action {
   Resting = 0,
   Falling,
-  Rolling,
 };
 
 enum cell_type {
@@ -50,14 +49,23 @@ enum cell_type {
   GreenBomb,
   RedBomb,
   Explosion,
+  ItemDude,
+  BombDude,
+};
+
+enum explosion_type {
+  NormalExplosion = 0,
+  ItemExplosion,
 };
 
 struct cell_state {
   cell_type type;
   int param;
+  bool moved;
 
-  cell_state() : type(Empty), param(1) { }
-  cell_state(cell_type type, int param) : type(type), param(param) { }
+  cell_state() : type(Empty), param(1), moved(false) { }
+  cell_state(cell_type type, int param = 0, bool moved = false) : type(type),
+      param(param), moved(moved) { }
 
   bool is_round() const {
     return (this->type == Rock) || (this->type == Item) ||
@@ -68,17 +76,14 @@ struct cell_state {
            (this->type == GreenBomb);
   }
   bool destroyable() const {
-    return (this->type == Empty) || (this->type == Circuit) ||
-           (this->type == Rock) || (this->type == Exit) ||
-           (this->type == Player) || (this->type == Item) ||
-           (this->type == RoundBlock) || (this->type == GreenBomb) ||
-           (this->type == RedBomb) || (this->type == Explosion);
+    return (this->type != Block);
   }
   bool is_bomb() const {
-    return (this->type == GreenBomb) || (this->type == RedBomb);
+    return (this->type == GreenBomb) || (this->type == RedBomb) ||
+           (this->type == ItemDude) || (this->type == BombDude);
   }
   bool is_volatile() const {
-    return (this->type == GreenBomb) || (this->type == Player);
+    return (this->type == Player) || this->is_dude() || this->is_bomb();
   }
   bool is_edible() const {
     return (this->type == Empty) || (this->type == Circuit) ||
@@ -90,6 +95,12 @@ struct cell_state {
   bool is_pushable_vertical() const {
     return false;
   }
+  bool is_dude() const {
+    return (this->type == ItemDude) || (this->type == BombDude);
+  }
+  explosion_type explosion_type() const {
+    return (this->type == ItemDude) ? ItemExplosion : NormalExplosion;
+  }
 };
 
 struct explosion_info {
@@ -97,9 +108,11 @@ struct explosion_info {
   int y;
   int size;
   int frames; // how many more frames before it occurs
+  explosion_type type;
 
-  explosion_info(int x, int y, int size, int frames) : x(x), y(y), size(size),
-      frames(frames) { }
+  explosion_info(int x, int y, int size = 1, int frames = 0,
+      explosion_type type = NormalExplosion) : x(x), y(y), size(size),
+      frames(frames), type(type) { }
 };
 
 struct level_state {
@@ -111,6 +124,7 @@ struct level_state {
   int num_red_bombs;
   bool player_will_drop_bomb;
   bool player_did_win;
+  float updates_per_second;
   vector<cell_state> cells;
   list<explosion_info> pending_explosions;
 
@@ -119,16 +133,16 @@ struct level_state {
   level_state(int w, int h, int player_x = 1, int player_y = 1) : w(w), h(h),
       player_x(player_x), player_y(player_y), num_items_remaining(0),
       num_red_bombs(0), player_will_drop_bomb(false), player_did_win(false),
-      cells(w * h) {
+      updates_per_second(20.0f), cells(w * h) {
     for (int x = 0; x < this->w; x++) {
-      this->at(x, 0) = cell_state(Block, 0);
-      this->at(x, this->h - 1) = cell_state(Block, 0);
+      this->at(x, 0) = cell_state(Block);
+      this->at(x, this->h - 1) = cell_state(Block);
     }
     for (int y = 0; y < this->h; y++) {
-      this->at(0, y) = cell_state(Block, 0);
-      this->at(this->w - 1, y) = cell_state(Block, 0);
+      this->at(0, y) = cell_state(Block);
+      this->at(this->w - 1, y) = cell_state(Block);
     }
-    this->at(this->player_x, this->player_y) = cell_state(Player, 0);
+    this->at(this->player_x, this->player_y) = cell_state(Player);
   }
 
   cell_state& at(int x, int y) {
@@ -147,6 +161,21 @@ struct level_state {
     return this->cells[y * this->w + x];
   }
 
+  void move_cell(int x, int y, player_impulse dir) {
+    this->at(x, y).moved = true;
+    if (dir == Left)
+      this->at(x - 1, y) = this->at(x, y);
+    else if (dir == Right)
+      this->at(x + 1, y) = this->at(x, y);
+    else if (dir == Up)
+      this->at(x, y - 1) = this->at(x, y);
+    else if (dir == Down)
+      this->at(x, y + 1) = this->at(x, y);
+    else
+      throw runtime_error("invalid direction");
+    this->at(x, y) = cell_state(Empty);
+  }
+
   bool player_is_alive() const {
     return (this->at(this->player_x, this->player_y).type == Player);
   }
@@ -159,7 +188,7 @@ void exec_frame(level_state& l, enum player_impulse impulse) {
       if (l.at(x, y).type == Explosion) {
         l.at(x, y).param -= 16;
         if (l.at(x, y).param <= 0) {
-          l.at(x, y) = cell_state(Empty, 0);
+          l.at(x, y) = cell_state(Empty);
         }
       }
 
@@ -167,7 +196,7 @@ void exec_frame(level_state& l, enum player_impulse impulse) {
       if (l.at(x, y).type == RedBomb && l.at(x, y).param) {
         l.at(x, y).param += 16;
         if (l.at(x, y).param >= 256)
-          l.pending_explosions.emplace_back(x, y, 1, 0);
+          l.pending_explosions.emplace_back(x, y);
       }
 
       // rule #1: empty space attenuates
@@ -182,35 +211,67 @@ void exec_frame(level_state& l, enum player_impulse impulse) {
       }
 
       // rule #2: rocks, items and green bombs fall
-      if (l.at(x, y).should_fall()) {
-        if (l.at(x, y).param == Rolling) {
-          l.at(x, y).param = Falling;
+      if (l.at(x, y).should_fall() && !l.at(x, y).moved) {
+        if (l.at(x, y + 1).type == Empty) {
+          l.at(x, y + 1) = cell_state(l.at(x, y).type, Falling, true);
+          l.at(x, y) = cell_state(Empty);
+        } else if (l.at(x, y + 1).is_volatile() && (l.at(x, y).param == Falling)) {
+          l.pending_explosions.emplace_back(x, y + 1, 1, 0, l.at(x, y + 1).explosion_type());
+        } else if (l.at(x, y).type == GreenBomb && (l.at(x, y).param == Falling)) {
+          l.pending_explosions.emplace_back(x, y, 1, 2);
         } else {
-          if (l.at(x, y + 1).type == Empty) {
-            l.at(x, y + 1) = cell_state(l.at(x, y).type, 1);
-            l.at(x, y) = cell_state(Empty, 0);
-          } else if (l.at(x, y + 1).is_volatile() && (l.at(x, y).param == Falling)) {
-            l.pending_explosions.emplace_back(x, y + 1, 1, 0);
-          } else if (l.at(x, y).type == GreenBomb && (l.at(x, y).param == Falling)) {
-            l.pending_explosions.emplace_back(x, y, 1, 2);
-          } else {
-            l.at(x, y).param = Resting;
-          }
+          l.at(x, y).param = Resting;
         }
       }
 
       // rule #3: round, fallable object roll off other round objects
       if (l.at(x, y).should_fall() && l.at(x, y).is_round() &&
-          l.at(x, y + 1).is_round()) {
+          l.at(x, y + 1).is_round() && !l.at(x, y).moved) {
         if (l.at(x - 1, y).type == Empty && l.at(x - 1, y + 1).type == Empty) {
-          l.at(x - 1, y) = cell_state(l.at(x, y).type, Falling);
-          l.at(x, y) = cell_state(Empty, 0);
+          l.at(x - 1, y) = cell_state(l.at(x, y).type, Resting, true);
+          l.at(x, y) = cell_state(Empty);
         } else if (l.at(x + 1, y).type == Empty && l.at(x + 1, y + 1).type == Empty) {
-          // we use Rolling here since we'll visit the target cell immediately
-          // after this one, and we don't want it to fall in the same frame. for
-          // left-rolls, we've already visited the cell so this isn't an issue
-          l.at(x + 1, y) = cell_state(l.at(x, y).type, Rolling);
-          l.at(x, y) = cell_state(Empty, 0);
+          l.at(x + 1, y) = cell_state(l.at(x, y).type, Resting, true);
+          l.at(x, y) = cell_state(Empty);
+        }
+      }
+
+      // rule #4: dudes move along their left wall
+      if (l.at(x, y).is_dude() && !l.at(x, y).moved) {
+        bool should_check_backturn = l.at(x, y).param > 0;
+
+        l.at(x, y).param = abs(l.at(x, y).param);
+        if (abs(l.at(x, y).param) == Left) {
+          if (should_check_backturn && (l.at(x, y + 1).type == Empty))
+            l.at(x, y).param = -Down;
+          else if (l.at(x - 1, y).type == Empty)
+            l.move_cell(x, y, Left);
+          else
+            l.at(x, y).param = Up;
+
+        } else if (abs(l.at(x, y).param) == Up) {
+          if (should_check_backturn && (l.at(x - 1, y).type == Empty))
+            l.at(x, y).param = -Left;
+          else if (l.at(x, y - 1).type == Empty)
+            l.move_cell(x, y, Up);
+          else
+            l.at(x, y).param = Right;
+
+        } else if (abs(l.at(x, y).param) == Right) {
+          if (should_check_backturn && (l.at(x, y - 1).type == Empty))
+            l.at(x, y).param = -Up;
+          else if (l.at(x + 1, y).type == Empty)
+            l.move_cell(x, y, Right);
+          else
+            l.at(x, y).param = Down;
+
+        } else if (abs(l.at(x, y).param) == Down) {
+          if (should_check_backturn && (l.at(x + 1, y).type == Empty))
+            l.at(x, y).param = -Right;
+          else if (l.at(x, y + 1).type == Empty)
+            l.move_cell(x, y, Down);
+          else
+            l.at(x, y).param = Left;
         }
       }
     }
@@ -224,8 +285,12 @@ void exec_frame(level_state& l, enum player_impulse impulse) {
         for (int xx = -it->size; xx <= it->size; xx++) {
           if (l.at(it->x + xx, it->y + yy).destroyable()) {
             if ((xx || yy) && l.at(it->x + xx, it->y + yy).is_bomb())
-              new_explosions.emplace_back(it->x + xx, it->y + yy, 1, 5);
-            l.at(it->x + xx, it->y + yy) = cell_state(Explosion, 255);
+              new_explosions.emplace_back(it->x + xx, it->y + yy, 1, 5,
+                  l.at(it->x + xx, it->y + yy).explosion_type());
+            if (it->type == ItemExplosion)
+              l.at(it->x + xx, it->y + yy) = cell_state(Item);
+            else
+              l.at(it->x + xx, it->y + yy) = cell_state(Explosion, 255);
           }
         }
       }
@@ -273,7 +338,7 @@ void exec_frame(level_state& l, enum player_impulse impulse) {
       push_target_cell = &l.at(l.player_x, l.player_y + 2);
     if (push_target_cell && push_target_cell->type == Empty) {
       *push_target_cell = *player_target_cell;
-      *player_target_cell = cell_state(Empty, 0);
+      *player_target_cell = cell_state(Empty);
     }
 
     if (player_target_cell->is_edible()) {
@@ -282,7 +347,7 @@ void exec_frame(level_state& l, enum player_impulse impulse) {
         l.num_red_bombs--;
         l.at(l.player_x, l.player_y) = cell_state(RedBomb, 1);
       } else {
-        l.at(l.player_x, l.player_y) = cell_state(Empty, 0);
+        l.at(l.player_x, l.player_y) = cell_state(Empty);
       }
       l.player_will_drop_bomb = false;
 
@@ -296,6 +361,11 @@ void exec_frame(level_state& l, enum player_impulse impulse) {
         l.player_x++;
     }
   }
+
+  // finally, clear all the moved flags for the next frame
+  for (int y = 0; y < l.h; y++)
+    for (int x = 0; x < l.w; x++)
+      l.at(x, y).moved = false;
 }
 
 // TODO use projection matrix to make this unnecessary
@@ -346,6 +416,12 @@ void render_level_state(const level_state& l, int window_w, int window_h) {
         case Explosion:
           glColor4f((float)param / 256, (float)param / 512, 0.0, 1.0);
           break;
+        case ItemDude:
+          glColor4f(0.0, 0.5, 1.0, 1.0);
+          break;
+        case BombDude:
+          glColor4f(1.0, 0.5, 0.0, 1.0);
+          break;
       }
 
       glVertex3f(to_window(x, l.w), -to_window(y, l.h), 1);
@@ -387,6 +463,9 @@ void render_level_state(const level_state& l, int window_w, int window_h) {
   else if (l.num_red_bombs < -1)
     draw_text(-0.99, -0.8, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
         "%d RED BOMBS IN DEBT", -l.num_red_bombs);
+
+  draw_text(-0.99, 0.97, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
+      "SPEED: %g", l.updates_per_second);
 }
 
 level_state generate_test_level() {
@@ -395,16 +474,16 @@ level_state generate_test_level() {
     for (int x = 0; x < l.w; x++) {
       if (x < 30) {
         if (((x + y) & 1) && (l.at(x, y).type == Empty)) {
-          l.at(x, y) = cell_state(Circuit, 0);
+          l.at(x, y) = cell_state(Circuit);
         }
       } else {
         if (y < 12) {
           if (((x + y) & 1) && (l.at(x, y).type == Empty)) {
-            l.at(x, y) = cell_state(Item, 0);
+            l.at(x, y) = cell_state(Item);
           }
         } else {
           if (l.at(x, y).type == Empty) {
-            l.at(x, y) = cell_state(Circuit, 0);
+            l.at(x, y) = cell_state(Circuit);
           }
         }
       }
@@ -467,32 +546,30 @@ level_state load_level(const char* filename, int level_index) {
           l.at(x, y) = cell_state(Empty, 1);
           break;
         case 0x01: // rock
-          l.at(x, y) = cell_state(Rock, 0);
+          l.at(x, y) = cell_state(Rock);
           break;
         case 0x02: // circuit
         case 0x19: // zap circuit (TODO)
-          l.at(x, y) = cell_state(Circuit, 0);
+          l.at(x, y) = cell_state(Circuit);
           break;
         case 0x03: // player
           l.player_x = x;
           l.player_y = y;
-          l.at(x, y) = cell_state(Player, 0);
+          l.at(x, y) = cell_state(Player);
           break;
         case 0x04: // item
-          l.at(x, y) = cell_state(Item, 0);
+          l.at(x, y) = cell_state(Item);
           break;
         case 0x05: // small chip
         case 0x1A: // chip left (TODO)
         case 0x1B: // chip right (TODO)
         case 0x26: // chip top (TODO)
         case 0x27: // chip bottom (TODO)
-          l.at(x, y) = cell_state(RoundBlock, 0);
+          l.at(x, y) = cell_state(RoundBlock);
           break;
         case 0x06: // block
-        case 0x11: // scissors (TODO)
         case 0x12: // yellow bomb (TODO)
         case 0x13: // terminal (TODO)
-        case 0x18: // spark (TODO)
         case 0x1C: // small components (TODO)
         case 0x1D: // green dot (TODO)
         case 0x1E: // blue dot (TODO)
@@ -503,16 +580,22 @@ level_state load_level(const char* filename, int level_index) {
         case 0x23: // resistors horizontal (TODO)
         case 0x24: // resistors vertical identical (TODO)
         case 0x25: // resistors hirizontal identical (TODO)
-          l.at(x, y) = cell_state(Block, 0);
+          l.at(x, y) = cell_state(Block);
           break;
         case 0x07: // exit
-          l.at(x, y) = cell_state(Exit, 0);
+          l.at(x, y) = cell_state(Exit);
           break;
         case 0x08: // green bomb
-          l.at(x, y) = cell_state(GreenBomb, 0);
+          l.at(x, y) = cell_state(GreenBomb);
           break;
         case 0x14: // red bomb
-          l.at(x, y) = cell_state(RedBomb, 0);
+          l.at(x, y) = cell_state(RedBomb);
+          break;
+        case 0x11: // scissors
+          l.at(x, y) = cell_state(BombDude, Left);
+          break;
+        case 0x18: // spark
+          l.at(x, y) = cell_state(ItemDude, Left);
           break;
         default:
           l.at(x, y) = cell_state(Empty, 255);
@@ -565,6 +648,12 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
         should_reload_state = true;
       else
         glfwSetWindowShouldClose(window, 1);
+    }
+    if (key == GLFW_KEY_TAB) {
+      if (game.updates_per_second == 20.0f)
+        game.updates_per_second = 2.0f;
+      else
+        game.updates_per_second = 20.0f;
     }
     if (key == GLFW_KEY_ENTER) {
       paused = !paused;
@@ -646,8 +735,6 @@ int main(int argc, char* argv[]) {
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   uint64_t last_update_time = now();
-  float updates_per_second = 20;
-  uint64_t usec_per_update = 1000000.0 / updates_per_second;
 
   while (!glfwWindowShouldClose(window)) {
 
@@ -668,6 +755,7 @@ int main(int argc, char* argv[]) {
       should_reload_state = false;
 
     } else {
+      uint64_t usec_per_update = 1000000.0 / game.updates_per_second;
       uint64_t now_time = now();
       uint64_t update_diff = now_time - last_update_time;
       if (update_diff >= usec_per_update) {
