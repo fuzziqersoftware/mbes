@@ -32,6 +32,12 @@ enum player_impulse {
   DropBomb,
 };
 
+enum block_fall_action {
+  Resting = 0,
+  Falling,
+  Rolling,
+};
+
 enum cell_type {
   Empty = 0,
   Circuit,
@@ -177,17 +183,35 @@ void exec_frame(level_state& l, enum player_impulse impulse) {
 
       // rule #2: rocks, items and green bombs fall
       if (l.at(x, y).should_fall()) {
-        if (l.at(x, y + 1).type == Empty) {
-          l.at(x, y + 1) = cell_state(l.at(x, y).type, 1);
-          l.at(x, y) = cell_state(Empty, 0);
-        } else if (l.at(x, y + 1).is_volatile() && l.at(x, y).param) {
-          l.pending_explosions.emplace_back(x, y + 1, 1, 0);
-        } else if (l.at(x, y).type == GreenBomb && l.at(x, y).param) {
-          l.pending_explosions.emplace_back(x, y, 1, 2);
+        if (l.at(x, y).param == Rolling) {
+          l.at(x, y).param = Falling;
         } else {
-          l.at(x, y).param = 0;
+          if (l.at(x, y + 1).type == Empty) {
+            l.at(x, y + 1) = cell_state(l.at(x, y).type, 1);
+            l.at(x, y) = cell_state(Empty, 0);
+          } else if (l.at(x, y + 1).is_volatile() && (l.at(x, y).param == Falling)) {
+            l.pending_explosions.emplace_back(x, y + 1, 1, 0);
+          } else if (l.at(x, y).type == GreenBomb && (l.at(x, y).param == Falling)) {
+            l.pending_explosions.emplace_back(x, y, 1, 2);
+          } else {
+            l.at(x, y).param = Resting;
+          }
         }
-        // TODO: rolling
+      }
+
+      // rule #3: round, fallable object roll off other round objects
+      if (l.at(x, y).should_fall() && l.at(x, y).is_round() &&
+          l.at(x, y + 1).is_round()) {
+        if (l.at(x - 1, y).type == Empty && l.at(x - 1, y + 1).type == Empty) {
+          l.at(x - 1, y) = cell_state(l.at(x, y).type, Falling);
+          l.at(x, y) = cell_state(Empty, 0);
+        } else if (l.at(x + 1, y).type == Empty && l.at(x + 1, y + 1).type == Empty) {
+          // we use Rolling here since we'll visit the target cell immediately
+          // after this one, and we don't want it to fall in the same frame. for
+          // left-rolls, we've already visited the cell so this isn't an issue
+          l.at(x + 1, y) = cell_state(l.at(x, y).type, Rolling);
+          l.at(x, y) = cell_state(Empty, 0);
+        }
       }
     }
   }
@@ -233,7 +257,8 @@ void exec_frame(level_state& l, enum player_impulse impulse) {
       l.num_items_remaining--;
     if (player_target_cell->type == RedBomb)
       l.num_red_bombs++;
-    if ((player_target_cell->type == Exit) && (l.num_red_bombs >= 0) && (l.num_items_remaining == 0))
+    if ((player_target_cell->type == Exit) && (l.num_red_bombs >= 0) &&
+        (l.num_items_remaining == 0))
       l.player_did_win = true;
 
     // if the player is pushing something, move it out of the way first
