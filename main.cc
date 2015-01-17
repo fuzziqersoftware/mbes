@@ -53,6 +53,13 @@ enum cell_type {
   Explosion,
   ItemDude,
   BombDude,
+  LeftPortal,
+  RightPortal,
+  UpPortal,
+  DownPortal,
+  HorizontalPortal,
+  VerticalPortal,
+  Portal,
 };
 
 enum explosion_type {
@@ -105,6 +112,22 @@ struct cell_state {
   }
   explosion_type explosion_type() const {
     return (this->type == ItemDude) ? ItemExplosion : NormalExplosion;
+  }
+  bool is_left_portal() const {
+    return (this->type == LeftPortal) || (this->type == HorizontalPortal) ||
+           (this->type == Portal);
+  }
+  bool is_right_portal() const {
+    return (this->type == RightPortal) || (this->type == HorizontalPortal) ||
+           (this->type == Portal);
+  }
+  bool is_up_portal() const {
+    return (this->type == UpPortal) || (this->type == VerticalPortal) ||
+           (this->type == Portal);
+  }
+  bool is_down_portal() const {
+    return (this->type == DownPortal) || (this->type == VerticalPortal) ||
+           (this->type == Portal);
   }
 };
 
@@ -189,7 +212,7 @@ struct level_state {
 void exec_frame(level_state& l, enum player_impulse impulse) {
   for (int y = l.h - 1; y >= 0; y--) {
     for (int x = 0; x < l.w; x++) {
-      // rule #0: explosions disappear
+      // rule #0: explosions disappear, items appear
       if (l.at(x, y).type == Explosion) {
         l.at(x, y).param -= 16;
         if (l.at(x, y).param <= 0) {
@@ -229,7 +252,7 @@ void exec_frame(level_state& l, enum player_impulse impulse) {
         }
       }
 
-      // rule #3: round, fallable object roll off other round objects
+      // rule #3: round, fallable objects roll off other round objects
       if (l.at(x, y).should_fall() && l.at(x, y).is_round() &&
           l.at(x, y + 1).is_round() && !l.at(x, y).moved) {
         if (l.at(x - 1, y).type == Empty && l.at(x - 1, y + 1).type == Empty) {
@@ -331,45 +354,69 @@ void exec_frame(level_state& l, enum player_impulse impulse) {
         (l.num_items_remaining <= 0))
       l.player_did_win = true;
 
-    // if the player is pushing something, move it out of the way first
-    cell_state* push_target_cell = NULL;
-    if ((impulse == Left) && player_target_cell->is_pushable_horizontal())
-      push_target_cell = &l.at(l.player_x - 2, l.player_y);
-    else if ((impulse == Right) && player_target_cell->is_pushable_horizontal())
-      push_target_cell = &l.at(l.player_x + 2, l.player_y);
-    else if ((impulse == Up) && player_target_cell->is_pushable_vertical())
-      push_target_cell = &l.at(l.player_x, l.player_y - 2);
-    else if ((impulse == Down) && player_target_cell->is_pushable_vertical())
-      push_target_cell = &l.at(l.player_x, l.player_y + 2);
-    if (push_target_cell && push_target_cell->type == Empty) {
-      *push_target_cell = *player_target_cell;
-      *player_target_cell = cell_state(Empty);
-    }
-
-    if (player_target_cell->is_edible()) {
-      if (player_target_cell->type == YellowBombTrigger)
-        for (int yy = 0; yy < l.h; yy++)
-          for (int xx = 0; xx < l.w; xx++)
-            if (l.at(xx, yy).type == YellowBomb)
-              l.pending_explosions.emplace_back(xx, yy);
-
-      *player_target_cell = l.at(l.player_x, l.player_y);
-      if (l.player_will_drop_bomb) {
-        l.num_red_bombs--;
-        l.at(l.player_x, l.player_y) = cell_state(RedBomb, 1);
-      } else {
-        l.at(l.player_x, l.player_y) = cell_state(Empty);
-      }
-      l.player_will_drop_bomb = false;
-
-      if (impulse == Up)
-        l.player_y--;
-      else if (impulse == Down)
-        l.player_y++;
-      else if (impulse == Left)
-        l.player_x--;
+    // if the player is moving into a portal, put them on the other side of it
+    cell_state* portal_target_cell = NULL;
+    if ((impulse == Left) && player_target_cell->is_left_portal())
+      portal_target_cell = &l.at(l.player_x - 2, l.player_y);
+    else if ((impulse == Right) && player_target_cell->is_right_portal())
+      portal_target_cell = &l.at(l.player_x + 2, l.player_y);
+    else if ((impulse == Up) && player_target_cell->is_up_portal())
+      portal_target_cell = &l.at(l.player_x, l.player_y - 2);
+    else if ((impulse == Down) && player_target_cell->is_down_portal())
+      portal_target_cell = &l.at(l.player_x, l.player_y + 2);
+    if (portal_target_cell && portal_target_cell->type == Empty) {
+      *portal_target_cell = l.at(l.player_x, l.player_y);
+      l.at(l.player_x, l.player_y) = cell_state(Empty);
+      if (impulse == Left)
+        l.player_x -= 2;
       else if (impulse == Right)
-        l.player_x++;
+        l.player_x += 2;
+      else if (impulse == Up)
+        l.player_y -= 2;
+      else if (impulse == Down)
+        l.player_y += 2;
+    } else {
+
+      // if the player is pushing something, move it out of the way first
+      cell_state* push_target_cell = NULL;
+      if ((impulse == Left) && player_target_cell->is_pushable_horizontal())
+        push_target_cell = &l.at(l.player_x - 2, l.player_y);
+      else if ((impulse == Right) && player_target_cell->is_pushable_horizontal())
+        push_target_cell = &l.at(l.player_x + 2, l.player_y);
+      else if ((impulse == Up) && player_target_cell->is_pushable_vertical())
+        push_target_cell = &l.at(l.player_x, l.player_y - 2);
+      else if ((impulse == Down) && player_target_cell->is_pushable_vertical())
+        push_target_cell = &l.at(l.player_x, l.player_y + 2);
+      if (push_target_cell && push_target_cell->type == Empty) {
+        *push_target_cell = *player_target_cell;
+        *player_target_cell = cell_state(Empty);
+      }
+
+      if (player_target_cell->is_edible()) {
+        if (player_target_cell->type == YellowBombTrigger)
+          for (int yy = 0; yy < l.h; yy++)
+            for (int xx = 0; xx < l.w; xx++)
+              if (l.at(xx, yy).type == YellowBomb)
+                l.pending_explosions.emplace_back(xx, yy);
+
+        *player_target_cell = l.at(l.player_x, l.player_y);
+        if (l.player_will_drop_bomb) {
+          l.num_red_bombs--;
+          l.at(l.player_x, l.player_y) = cell_state(RedBomb, 1);
+        } else {
+          l.at(l.player_x, l.player_y) = cell_state(Empty);
+        }
+        l.player_will_drop_bomb = false;
+
+        if (impulse == Up)
+          l.player_y--;
+        else if (impulse == Down)
+          l.player_y++;
+        else if (impulse == Left)
+          l.player_x--;
+        else if (impulse == Right)
+          l.player_x++;
+      }
     }
   }
 
@@ -440,6 +487,15 @@ void render_level_state(const level_state& l, int window_w, int window_h) {
         case BombDude:
           glColor4f(1.0, 0.5, 0.0, 1.0);
           break;
+        case LeftPortal:
+        case RightPortal:
+        case UpPortal:
+        case DownPortal:
+        case HorizontalPortal:
+        case VerticalPortal:
+        case Portal:
+          glColor4f(0.5, 0.0, 0.0, 1.0);
+          break;
       }
 
       glVertex3f(to_window(x, l.w), -to_window(y, l.h), 1);
@@ -459,15 +515,40 @@ void render_level_state(const level_state& l, int window_w, int window_h) {
 
   glEnd();
 
+  glBegin(GL_TRIANGLES);
+  glColor4f(1.0, 1.0, 1.0, 1.0);
+  for (int y = 0; y < l.h; y++) {
+    for (int x = 0; x < l.w; x++) {
+      if (l.at(x, y).is_left_portal()) {
+        glVertex3f(to_window(4 * x, 4 * l.w), -to_window(4 * y + 2, 4 * l.h), 1);
+        glVertex3f(to_window(4 * x + 1, 4 * l.w), -to_window(4 * y + 1, 4 * l.h), 1);
+        glVertex3f(to_window(4 * x + 1, 4 * l.w), -to_window(4 * y + 3, 4 * l.h), 1);
+      }
+      if (l.at(x, y).is_right_portal()) {
+        glVertex3f(to_window(4 * x + 4, 4 * l.w), -to_window(4 * y + 2, 4 * l.h), 1);
+        glVertex3f(to_window(4 * x + 3, 4 * l.w), -to_window(4 * y + 1, 4 * l.h), 1);
+        glVertex3f(to_window(4 * x + 3, 4 * l.w), -to_window(4 * y + 3, 4 * l.h), 1);
+      }
+      if (l.at(x, y).is_up_portal()) {
+        glVertex3f(to_window(4 * x + 2, 4 * l.w), -to_window(4 * y, 4 * l.h), 1);
+        glVertex3f(to_window(4 * x + 1, 4 * l.w), -to_window(4 * y + 1, 4 * l.h), 1);
+        glVertex3f(to_window(4 * x + 3, 4 * l.w), -to_window(4 * y + 1, 4 * l.h), 1);
+      }
+      if (l.at(x, y).is_down_portal()) {
+        glVertex3f(to_window(4 * x + 2, 4 * l.w), -to_window(4 * y + 4, 4 * l.h), 1);
+        glVertex3f(to_window(4 * x + 1, 4 * l.w), -to_window(4 * y + 3, 4 * l.h), 1);
+        glVertex3f(to_window(4 * x + 3, 4 * l.w), -to_window(4 * y + 3, 4 * l.h), 1);
+      }
+    }
+  }
+  glEnd();
+
   if (l.num_items_remaining > 1)
     draw_text(-0.99, -0.9, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
         "%d ITEMS REMAINING", l.num_items_remaining);
   else if (l.num_items_remaining == 1)
     draw_text(-0.99, -0.9, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
         "1 ITEM REMAINING");
-  else
-    draw_text(-0.99, -0.9, 0, 1, 0, 1, (float)window_w / window_h, 0.01, false,
-        "NO ITEMS REMAINING");
 
   if (l.num_red_bombs > 1)
     draw_text(-0.99, -0.8, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
@@ -482,8 +563,9 @@ void render_level_state(const level_state& l, int window_w, int window_h) {
     draw_text(-0.99, -0.8, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
         "%d RED BOMBS IN DEBT", -l.num_red_bombs);
 
-  draw_text(-0.99, 0.97, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
-      "SPEED: %g", l.updates_per_second);
+  if (l.updates_per_second < 20.0f)
+    draw_text(-0.99, 0.97, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
+        "SLOW");
 }
 
 level_state generate_test_level() {
@@ -542,7 +624,7 @@ level_state load_level(const char* filename, int level_index) {
   fread(&spl, 1, sizeof(spl), f);
   fclose(f);
 
-  printf("note: level is called %s\n", spl.title);
+  printf("note: level is called %23s\n", spl.title);
 
   level_state l;
   l.num_items_remaining = spl.num_items_needed;
@@ -550,17 +632,6 @@ level_state load_level(const char* filename, int level_index) {
     for (int x = 0; x < 60; x++) {
       switch (spl.cells[y][x]) {
         case 0x00: // empty
-        case 0x09: // portal right (TODO)
-        case 0x0A: // portal down (TODO)
-        case 0x0B: // portal left (TODO)
-        case 0x0C: // portal up (TODO)
-        case 0x0D: // portal left special (TODO)
-        case 0x0E: // portal down special (TODO)
-        case 0x0F: // portal right special (TODO)
-        case 0x10: // portal up special (TODO)
-        case 0x15: // portal vertical (TODO)
-        case 0x16: // portal horizontal (TODO)
-        case 0x17: // portal 4-way (TODO)
           l.at(x, y) = cell_state(Empty, 1);
           break;
         case 0x01: // rock
@@ -619,6 +690,31 @@ level_state load_level(const char* filename, int level_index) {
         case 0x18: // spark
           l.at(x, y) = cell_state(ItemDude, Up);
           break;
+        case 0x09: // portal right (TODO)
+        case 0x0F: // portal right special (TODO)
+          l.at(x, y) = cell_state(RightPortal);
+          break;
+        case 0x0A: // portal down (TODO)
+        case 0x0E: // portal down special (TODO)
+          l.at(x, y) = cell_state(DownPortal);
+          break;
+        case 0x0B: // portal left (TODO)
+        case 0x0D: // portal left special (TODO)
+          l.at(x, y) = cell_state(LeftPortal);
+          break;
+        case 0x0C: // portal up (TODO)
+        case 0x10: // portal up special (TODO)
+          l.at(x, y) = cell_state(UpPortal);
+          break;
+        case 0x15: // portal vertical (TODO)
+          l.at(x, y) = cell_state(VerticalPortal);
+          break;
+        case 0x16: // portal horizontal (TODO)
+          l.at(x, y) = cell_state(HorizontalPortal);
+          break;
+        case 0x17: // portal 4-way (TODO)
+          l.at(x, y) = cell_state(Portal);
+          break;
         default:
           l.at(x, y) = cell_state(Empty, 255);
       }
@@ -670,18 +766,18 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
         should_reload_state = true;
       else
         glfwSetWindowShouldClose(window, 1);
-    }
-    if (key == GLFW_KEY_TAB) {
+
+    } else if (key == GLFW_KEY_ENTER) {
+      paused = !paused;
+      player_did_lose = false;
+
+    } else if (key == GLFW_KEY_TAB) {
       if (game.updates_per_second == 20.0f)
         game.updates_per_second = 2.0f;
       else
         game.updates_per_second = 20.0f;
-    }
-    if (key == GLFW_KEY_ENTER) {
-      paused = !paused;
-      player_did_lose = false;
-    }
-    if (!paused) {
+
+    } else {
       if (key == GLFW_KEY_LEFT)
         current_impulse = Left;
       if (key == GLFW_KEY_RIGHT)
@@ -794,15 +890,30 @@ int main(int argc, char* argv[]) {
     if (paused) {
       draw_text(0, 0.7, 1, 1, 1, 1, (float)window_w / window_h, 0.03, true,
           "MOVE BLOCKS AND EAT STUFF");
-      if (player_did_lose)
-        draw_text(0, 0.3, 1, 0, 0, 1, (float)window_w / window_h, 0.01, true,
-            "YOU LOSE");
-      else if (game.player_did_win)
+      if (game.player_did_win)
         draw_text(0, 0.3, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
             "YOU WIN");
-      else
-        draw_text(0, 0.3, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
-            "PRESS ENTER TO PLAY");
+      else {
+        if (player_did_lose)
+          draw_text(0, 0.3, 1, 0, 0, 1, (float)window_w / window_h, 0.01, true,
+              "YOU LOSE");
+        else
+          draw_text(0, 0.3, 1, 1, 1, 1, (float)window_w / window_h, 0.02, true,
+              "PRESS ENTER TO PLAY");
+
+        draw_text(0, 0, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
+            "UP/DOWN/LEFT/RIGHT: MOVE");
+        draw_text(0, -0.1, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
+            "SPACE: DROP BOMB");
+        draw_text(0, -0.2, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
+            "TAB: TOGGLE SPEED");
+        draw_text(0, -0.3, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
+            "ENTER: PAUSE");
+        draw_text(0, -0.4, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
+            "SHIFT+ESC: RESTART LEVEL");
+        draw_text(0, -0.5, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
+            "ESC: EXIT");
+      }
     }
 
     glfwSwapBuffers(window);
