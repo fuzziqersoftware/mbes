@@ -170,7 +170,8 @@ struct level_state {
       this->at(0, y) = cell_state(Block);
       this->at(this->w - 1, y) = cell_state(Block);
     }
-    this->at(this->player_x, this->player_y) = cell_state(Player);
+    if ((this->player_x >= 0) && (this->player_y >= 0))
+      this->at(this->player_x, this->player_y) = cell_state(Player);
   }
 
   cell_state& at(int x, int y) {
@@ -206,6 +207,15 @@ struct level_state {
 
   bool player_is_alive() const {
     return (this->at(this->player_x, this->player_y).type == Player);
+  }
+
+  bool validate() const {
+    // check that a Player cell exists
+    for (int y = 0; y < this->h; y++)
+      for (int x = 0; x < this->w; x++)
+        if (this->at(x, y).type == Player)
+          return true;
+    return false;
   }
 };
 
@@ -312,9 +322,13 @@ void exec_frame(level_state& l, enum player_impulse impulse) {
       for (int yy = -it->size; yy <= it->size; yy++) {
         for (int xx = -it->size; xx <= it->size; xx++) {
           if (l.at(it->x + xx, it->y + yy).destroyable()) {
-            if ((xx || yy) && l.at(it->x + xx, it->y + yy).is_bomb())
+            if ((xx || yy) && l.at(it->x + xx, it->y + yy).is_volatile()) {
+              explosion_type new_type = l.at(it->x + xx, it->y + yy).explosion_type();
+              if (it->type == ItemExplosion)
+                new_type = ItemExplosion;
               new_explosions.emplace_back(it->x + xx, it->y + yy, 1, 5,
-                  l.at(it->x + xx, it->y + yy).explosion_type());
+                  new_type);
+            }
             if (it->type == ItemExplosion)
               l.at(it->x + xx, it->y + yy) = cell_state(Item);
             else
@@ -364,9 +378,17 @@ void exec_frame(level_state& l, enum player_impulse impulse) {
       portal_target_cell = &l.at(l.player_x, l.player_y - 2);
     else if ((impulse == Down) && player_target_cell->is_down_portal())
       portal_target_cell = &l.at(l.player_x, l.player_y + 2);
+
     if (portal_target_cell && portal_target_cell->type == Empty) {
       *portal_target_cell = l.at(l.player_x, l.player_y);
-      l.at(l.player_x, l.player_y) = cell_state(Empty);
+      if (l.player_will_drop_bomb) {
+        l.num_red_bombs--;
+        l.at(l.player_x, l.player_y) = cell_state(RedBomb, 1);
+      } else {
+        l.at(l.player_x, l.player_y) = cell_state(Empty);
+      }
+      l.player_will_drop_bomb = false;
+
       if (impulse == Left)
         l.player_x -= 2;
       else if (impulse == Right)
@@ -494,7 +516,7 @@ void render_level_state(const level_state& l, int window_w, int window_h) {
         case HorizontalPortal:
         case VerticalPortal:
         case Portal:
-          glColor4f(0.5, 0.0, 0.0, 1.0);
+          glColor4f(0.7, 0.0, 0.0, 1.0);
           break;
       }
 
@@ -611,132 +633,142 @@ struct supaplex_level {
   uint32_t unused;
 };
 
-level_state load_level(const char* filename, int level_index) {
+cell_state state_for_supaplex_cell(uint8_t contents) {
+  switch (contents) {
+    case 0x00: // empty
+      return cell_state(Empty, 1);
+    case 0x01: // rock
+      return cell_state(Rock);
+    case 0x02: // circuit
+    case 0x19: // zap circuit (TODO)
+      return cell_state(Circuit);
+    case 0x03: // player
+      return cell_state(Player);
+    case 0x04: // item
+      return cell_state(Item);
+    case 0x05: // small chip
+    case 0x1A: // chip left (TODO)
+    case 0x1B: // chip right (TODO)
+    case 0x26: // chip top (TODO)
+    case 0x27: // chip bottom (TODO)
+      return cell_state(RoundBlock);
+    case 0x06: // block
+    case 0x1C: // small components (TODO)
+    case 0x1D: // green dot (TODO)
+    case 0x1E: // blue dot (TODO)
+    case 0x1F: // red dot (TODO)
+    case 0x20: // red/black striped block (TODO)
+    case 0x21: // resistors mixed (TODO)
+    case 0x22: // capacitor (TODO)
+    case 0x23: // resistors horizontal (TODO)
+    case 0x24: // resistors vertical identical (TODO)
+    case 0x25: // resistors hirizontal identical (TODO)
+      return cell_state(Block);
+    case 0x07: // exit
+      return cell_state(Exit);
+    case 0x08: // green bomb
+      return cell_state(GreenBomb);
+    case 0x12: // yellow bomb
+      return cell_state(YellowBomb);
+    case 0x14: // red bomb
+      return cell_state(RedBomb);
+    case 0x13: // terminal
+      return cell_state(YellowBombTrigger);
+    case 0x11: // scissors
+      return cell_state(BombDude, Up);
+    case 0x18: // spark
+      return cell_state(ItemDude, Up);
+    case 0x09: // portal right (TODO)
+    case 0x0D: // portal right special (TODO)
+      return cell_state(RightPortal);
+    case 0x0A: // portal down (TODO)
+    case 0x0E: // portal down special (TODO)
+      return cell_state(DownPortal);
+    case 0x0B: // portal left (TODO)
+    case 0x0F: // portal left special (TODO)
+      return cell_state(LeftPortal);
+    case 0x0C: // portal up (TODO)
+    case 0x10: // portal up special (TODO)
+      return cell_state(UpPortal);
+    case 0x15: // portal vertical (TODO)
+      return cell_state(VerticalPortal);
+    case 0x16: // portal horizontal (TODO)
+      return cell_state(HorizontalPortal);
+    case 0x17: // portal 4-way (TODO)
+      return cell_state(Portal);
+    default:
+      return cell_state(Empty, 255);
+  }
+}
 
-  if (!filename)
-    return generate_test_level();
+level_state import_supaplex_level(const supaplex_level& spl) {
+  bool need_top_cover = false, need_bottom_cover = false,
+       need_left_cover = false, need_right_cover = false;
+  for (int y = 0; y < 24; y++) {
+    if (state_for_supaplex_cell(spl.cells[y][0]).type != Block)
+      need_left_cover = true;
+    if (state_for_supaplex_cell(spl.cells[y][59]).type != Block)
+      need_right_cover = true;
+  }
+  for (int x = 0; x < 60; x++) {
+    if (state_for_supaplex_cell(spl.cells[0][x]).type != Block)
+      need_top_cover = true;
+    if (state_for_supaplex_cell(spl.cells[23][x]).type != Block)
+      need_bottom_cover = true;
+  }
 
-  supaplex_level spl;
-  FILE* f = fopen(filename, "rb");
-  if (!f)
-    throw runtime_error("file not found");
-  fseek(f, level_index * sizeof(supaplex_level), SEEK_SET);
-  fread(&spl, 1, sizeof(spl), f);
-  fclose(f);
-
-  printf("note: level is called %23s\n", spl.title);
-
-  level_state l;
+  int level_w = 60 + need_left_cover + need_right_cover;
+  int level_h = 24 + need_top_cover + need_bottom_cover;
+  level_state l(level_w, level_h, -1, -1);
   l.num_items_remaining = spl.num_items_needed;
   for (int y = 0; y < 24; y++) {
     for (int x = 0; x < 60; x++) {
-      switch (spl.cells[y][x]) {
-        case 0x00: // empty
-          l.at(x, y) = cell_state(Empty, 1);
-          break;
-        case 0x01: // rock
-          l.at(x, y) = cell_state(Rock);
-          break;
-        case 0x02: // circuit
-        case 0x19: // zap circuit (TODO)
-          l.at(x, y) = cell_state(Circuit);
-          break;
-        case 0x03: // player
-          l.player_x = x;
-          l.player_y = y;
-          l.at(x, y) = cell_state(Player);
-          break;
-        case 0x04: // item
-          l.at(x, y) = cell_state(Item);
-          break;
-        case 0x05: // small chip
-        case 0x1A: // chip left (TODO)
-        case 0x1B: // chip right (TODO)
-        case 0x26: // chip top (TODO)
-        case 0x27: // chip bottom (TODO)
-          l.at(x, y) = cell_state(RoundBlock);
-          break;
-        case 0x06: // block
-        case 0x1C: // small components (TODO)
-        case 0x1D: // green dot (TODO)
-        case 0x1E: // blue dot (TODO)
-        case 0x1F: // red dot (TODO)
-        case 0x20: // red/black striped block (TODO)
-        case 0x21: // resistors mixed (TODO)
-        case 0x22: // capacitor (TODO)
-        case 0x23: // resistors horizontal (TODO)
-        case 0x24: // resistors vertical identical (TODO)
-        case 0x25: // resistors hirizontal identical (TODO)
-          l.at(x, y) = cell_state(Block);
-          break;
-        case 0x07: // exit
-          l.at(x, y) = cell_state(Exit);
-          break;
-        case 0x08: // green bomb
-          l.at(x, y) = cell_state(GreenBomb);
-          break;
-        case 0x12: // yellow bomb
-          l.at(x, y) = cell_state(YellowBomb);
-          break;
-        case 0x14: // red bomb
-          l.at(x, y) = cell_state(RedBomb);
-          break;
-        case 0x13: // terminal
-          l.at(x, y) = cell_state(YellowBombTrigger);
-          break;
-        case 0x11: // scissors
-          l.at(x, y) = cell_state(BombDude, Up);
-          break;
-        case 0x18: // spark
-          l.at(x, y) = cell_state(ItemDude, Up);
-          break;
-        case 0x09: // portal right (TODO)
-        case 0x0F: // portal right special (TODO)
-          l.at(x, y) = cell_state(RightPortal);
-          break;
-        case 0x0A: // portal down (TODO)
-        case 0x0E: // portal down special (TODO)
-          l.at(x, y) = cell_state(DownPortal);
-          break;
-        case 0x0B: // portal left (TODO)
-        case 0x0D: // portal left special (TODO)
-          l.at(x, y) = cell_state(LeftPortal);
-          break;
-        case 0x0C: // portal up (TODO)
-        case 0x10: // portal up special (TODO)
-          l.at(x, y) = cell_state(UpPortal);
-          break;
-        case 0x15: // portal vertical (TODO)
-          l.at(x, y) = cell_state(VerticalPortal);
-          break;
-        case 0x16: // portal horizontal (TODO)
-          l.at(x, y) = cell_state(HorizontalPortal);
-          break;
-        case 0x17: // portal 4-way (TODO)
-          l.at(x, y) = cell_state(Portal);
-          break;
-        default:
-          l.at(x, y) = cell_state(Empty, 255);
+      int target_x = x + need_left_cover;
+      int target_y = y + need_top_cover;
+      l.at(target_x, target_y) = state_for_supaplex_cell(spl.cells[y][x]);
+      if ((l.at(target_x, target_y).type == Player) &&
+          (l.player_x < 0) && (l.player_y < 0)) {
+        l.player_x = target_x;
+        l.player_y = target_y;
       }
-      fprintf(stderr, "%02X", spl.cells[y][x]);
     }
-    fprintf(stderr, "\n");
   }
 
   return l;
 }
 
+vector<level_state> load_level_index(const char* filename) {
+  FILE* f = fopen(filename, "rb");
+  if (!f)
+    throw runtime_error("file not found");
+  fseek(f, 0, SEEK_END);
+  uint64_t num = ftell(f) / sizeof(supaplex_level);
+  fseek(f, 0, SEEK_SET);
+
+  vector<level_state> all_levels;
+  for (uint64_t x = 0; x < num; x++) {
+    supaplex_level spl;
+    fread(&spl, 1, sizeof(spl), f);
+    all_levels.push_back(import_supaplex_level(spl));
+  }
+  fclose(f);
+
+  return all_levels;
+}
 
 
-void render_stripe_animation(int window_w, int window_h, int stripe_width) {
+
+void render_stripe_animation(int window_w, int window_h, int stripe_width,
+    float br, float bg, float bb, float ba, float sr, float sg, float sb,
+    float sa) {
   glBegin(GL_QUADS);
-  glColor4f(0.0f, 0.0f, 0.0f, 0.6f);
+  glColor4f(br, bg, bb, ba);
   glVertex3f(-1.0f, -1.0f, 1.0f);
   glVertex3f(1.0f, -1.0f, 1.0f);
   glVertex3f(1.0f, 1.0f, 1.0f);
   glVertex3f(-1.0f, 1.0f, 1.0f);
 
-  glColor4f(0.0f, 0.0f, 0.0f, 0.1f);
+  glColor4f(sr, sg, sb, sa);
   int xpos;
   for (xpos = -2 * stripe_width +
         (float)(now() % 3000000) / 3000000 * 2 * stripe_width;
@@ -815,8 +847,13 @@ int main(int argc, char* argv[]) {
 
   const char* level_filename = (argc > 1) ? argv[1] : NULL;
   int level_index = (argc > 2) ? atoi(argv[2]) : 0;
-  level_state initial_state = load_level(level_filename, level_index);
-  game = initial_state;
+  vector<level_state> initial_state = load_level_index(level_filename);
+  if ((level_index >= initial_state.size()) || (level_index < 0)) {
+    fprintf(stderr, "invalid level index\n");
+    return 1;
+  }
+  game = initial_state[level_index];
+  bool level_is_valid = game.validate();
 
   if (!glfwInit()) {
     fprintf(stderr, "failed to initialize GLFW\n");
@@ -824,7 +861,7 @@ int main(int argc, char* argv[]) {
   }
   glfwSetErrorCallback(glfw_error_cb);
 
-  GLFWwindow* window = glfwCreateWindow(60 * 24, 24 * 24,
+  GLFWwindow* window = glfwCreateWindow(game.w * 24, game.h * 24,
       "Move Blocks and Eat Stuff", NULL, NULL);
   if (!window) {
     glfwTerminate();
@@ -860,59 +897,81 @@ int main(int argc, char* argv[]) {
     glfwGetFramebufferSize(window, &window_w, &window_h);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    if (!game.player_is_alive()) {
-      paused = true;
-      player_did_lose = true;
-      game = initial_state;
-    } else if (game.player_did_win) {
-      paused = true;
-
-    } else if (should_reload_state) {
-      paused = true;
-      game = initial_state;
-      should_reload_state = false;
-
-    } else {
-      uint64_t usec_per_update = 1000000.0 / game.updates_per_second;
-      uint64_t now_time = now();
-      uint64_t update_diff = now_time - last_update_time;
-      if (update_diff >= usec_per_update) {
-        if (!paused)
-          exec_frame(game, current_impulse);
-        last_update_time = now_time;
-      }
-
-      render_level_state(game, window_w, window_h);
-      if (paused)
-        render_stripe_animation(window_w, window_h, 100);
-    }
-
-    if (paused) {
+    if (!level_is_valid) {
+      render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f, 0.6f,
+          1.0, 0.0, 0.0, 0.3);
       draw_text(0, 0.7, 1, 1, 1, 1, (float)window_w / window_h, 0.03, true,
           "MOVE BLOCKS AND EAT STUFF");
-      if (game.player_did_win)
-        draw_text(0, 0.3, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
-            "YOU WIN");
-      else {
-        if (player_did_lose)
-          draw_text(0, 0.3, 1, 0, 0, 1, (float)window_w / window_h, 0.01, true,
-              "YOU LOSE");
-        else
-          draw_text(0, 0.3, 1, 1, 1, 1, (float)window_w / window_h, 0.02, true,
-              "PRESS ENTER TO PLAY");
+      draw_text(0, 0.3, 1, 0, 0, 1, (float)window_w / window_h, 0.02, true,
+          "LEVEL IS CORRUPT");
+      draw_text(0, 0.0, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
+          "ESC: EXIT");
 
-        draw_text(0, 0, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
-            "UP/DOWN/LEFT/RIGHT: MOVE");
-        draw_text(0, -0.1, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
-            "SPACE: DROP BOMB");
-        draw_text(0, -0.2, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
-            "TAB: TOGGLE SPEED");
-        draw_text(0, -0.3, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
-            "ENTER: PAUSE");
-        draw_text(0, -0.4, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
-            "SHIFT+ESC: RESTART LEVEL");
-        draw_text(0, -0.5, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
-            "ESC: EXIT");
+    } else {
+
+      if (!game.player_is_alive()) {
+        paused = true;
+        player_did_lose = true;
+        game = initial_state[level_index];
+      } else if (game.player_did_win) {
+        paused = true;
+
+      } else if (should_reload_state) {
+        paused = true;
+        game = initial_state[level_index];
+        should_reload_state = false;
+
+      } else {
+        uint64_t usec_per_update = 1000000.0 / game.updates_per_second;
+        uint64_t now_time = now();
+        uint64_t update_diff = now_time - last_update_time;
+        if (update_diff >= usec_per_update) {
+          if (!paused)
+            exec_frame(game, current_impulse);
+          last_update_time = now_time;
+        }
+
+        render_level_state(game, window_w, window_h);
+        if (paused)
+          render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f,
+              0.6f, 0.0f, 0.0f, 0.0f, 0.1f);
+      }
+
+      if (paused) {
+        draw_text(0, 0.7, 1, 1, 1, 1, (float)window_w / window_h, 0.03, true,
+            "MOVE BLOCKS AND EAT STUFF");
+
+        if (game.player_did_win) {
+          if (level_index < initial_state.size() - 1) {
+            level_index++;
+            if (level_index < initial_state.size()) {
+              game = initial_state[level_index];
+            }
+
+          } else
+            draw_text(0, 0.3, 1, 1, 1, 1, (float)window_w / window_h, 0.02, true,
+                "YOU WIN");
+        } else {
+          if (player_did_lose)
+            draw_text(0, 0.3, 1, 0, 0, 1, (float)window_w / window_h, 0.02, true,
+                "LEVEL %d - PRESS ENTER TO TRY AGAIN", level_index);
+          else
+            draw_text(0, 0.3, 1, 1, 1, 1, (float)window_w / window_h, 0.02, true,
+                "LEVEL %d - PRESS ENTER TO PLAY", level_index);
+
+          draw_text(0, 0, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
+              "UP/DOWN/LEFT/RIGHT: MOVE");
+          draw_text(0, -0.1, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
+              "SPACE: DROP BOMB");
+          draw_text(0, -0.2, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
+              "TAB: TOGGLE SPEED");
+          draw_text(0, -0.3, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
+              "ENTER: PAUSE");
+          draw_text(0, -0.4, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
+              "SHIFT+ESC: RESTART LEVEL");
+          draw_text(0, -0.5, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
+              "ESC: EXIT");
+        }
       }
     }
 
