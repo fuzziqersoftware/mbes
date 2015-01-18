@@ -17,6 +17,32 @@ using namespace std;
 
 
 
+static void render_stripe_animation(int window_w, int window_h, int stripe_width,
+    float br, float bg, float bb, float ba, float sr, float sg, float sb,
+    float sa) {
+  glBegin(GL_QUADS);
+  glColor4f(br, bg, bb, ba);
+  glVertex3f(-1.0f, -1.0f, 1.0f);
+  glVertex3f(1.0f, -1.0f, 1.0f);
+  glVertex3f(1.0f, 1.0f, 1.0f);
+  glVertex3f(-1.0f, 1.0f, 1.0f);
+
+  glColor4f(sr, sg, sb, sa);
+  int xpos;
+  for (xpos = -2 * stripe_width +
+        (float)(now() % 3000000) / 3000000 * 2 * stripe_width;
+       xpos < window_w + window_h;
+       xpos += (2 * stripe_width)) {
+    glVertex2f(to_window(xpos, window_w), 1);
+    glVertex2f(to_window(xpos + stripe_width, window_w), 1);
+    glVertex2f(to_window(xpos - window_h + stripe_width, window_w), -1);
+    glVertex2f(to_window(xpos - window_h, window_w), -1);
+  }
+  glEnd();
+}
+
+
+
 static void render_cell_quads(const cell_state& cell, int x, int y, int l_w,
     int l_h) {
   bool draw_center = false;
@@ -152,36 +178,15 @@ static void render_level_state(const level_state& l, int window_w, int window_h)
     draw_text(-0.99, -0.8, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
         "%d RED BOMBS IN DEBT", -l.num_red_bombs);
 
-  if (l.updates_per_second < 20.0f)
-    draw_text(-0.99, 0.97, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
-        "SLOW");
-}
-
-
-
-static void render_stripe_animation(int window_w, int window_h, int stripe_width,
-    float br, float bg, float bb, float ba, float sr, float sg, float sb,
-    float sa) {
-  glBegin(GL_QUADS);
-  glColor4f(br, bg, bb, ba);
-  glVertex3f(-1.0f, -1.0f, 1.0f);
-  glVertex3f(1.0f, -1.0f, 1.0f);
-  glVertex3f(1.0f, 1.0f, 1.0f);
-  glVertex3f(-1.0f, 1.0f, 1.0f);
-
-  glColor4f(sr, sg, sb, sa);
-  int xpos;
-  for (xpos = -2 * stripe_width +
-        (float)(now() % 3000000) / 3000000 * 2 * stripe_width;
-       xpos < window_w + window_h;
-       xpos += (2 * stripe_width)) {
-    glVertex2f(to_window(xpos, window_w), 1);
-    glVertex2f(to_window(xpos + stripe_width, window_w), 1);
-    glVertex2f(to_window(xpos - window_h + stripe_width, window_w), -1);
-    glVertex2f(to_window(xpos - window_h, window_w), -1);
+  if (l.updates_per_second < 20.0f) {
+    render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 0.1f);
+    //draw_text(-0.99, 0.97, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
+    //    "SLOW");
   }
-  glEnd();
 }
+
+
 
 static void render_paused_screen(int window_w, int window_h,
     int level_index, bool player_did_win, bool player_did_lose) {
@@ -258,16 +263,22 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
         game.updates_per_second = 20.0f;
 
     } else {
-      if (key == GLFW_KEY_LEFT)
+      if (key == GLFW_KEY_LEFT) {
         current_impulse = Left;
-      if (key == GLFW_KEY_RIGHT)
+        phase = Playing;
+      } else if (key == GLFW_KEY_RIGHT) {
         current_impulse = Right;
-      if (key == GLFW_KEY_UP)
+        phase = Playing;
+      } else if (key == GLFW_KEY_UP) {
         current_impulse = Up;
-      if (key == GLFW_KEY_DOWN)
+        phase = Playing;
+      } else if (key == GLFW_KEY_DOWN) {
         current_impulse = Down;
-      if (key == GLFW_KEY_SPACE)
+        phase = Playing;
+      } else if (key == GLFW_KEY_SPACE) {
         current_impulse = DropBomb;
+        phase = Playing;
+      }
     }
   }
 
@@ -283,6 +294,12 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
   }
 }
 
+static void glfw_focus_cb(GLFWwindow* window, int focused) {
+  if ((focused == GL_FALSE) && (phase == Playing)) {
+    phase = Paused;
+  }
+}
+
 static void glfw_resize_cb(GLFWwindow* window, int width, int height) {
   glViewport(0, 0, width, height);
 }
@@ -295,9 +312,15 @@ int main(int argc, char* argv[]) {
 
   const char* level_filename = (argc > 1) ? argv[1] : NULL;
   int level_index = (argc > 2) ? atoi(argv[2]) : 0;
-  vector<level_state> initial_state = load_level_index(level_filename);
+  vector<level_state> initial_state;
+  try {
+    initial_state = load_level_index(level_filename);
+  } catch (const runtime_error& e) {
+    fprintf(stderr, "can\'t load level index: %s\n", e.what());
+    return 1;
+  }
   if ((level_index >= initial_state.size()) || (level_index < 0)) {
-    fprintf(stderr, "invalid level index\n");
+    fprintf(stderr, "invalid level number\n");
     return 1;
   }
   game = initial_state[level_index];
@@ -305,7 +328,7 @@ int main(int argc, char* argv[]) {
 
   if (!glfwInit()) {
     fprintf(stderr, "failed to initialize GLFW\n");
-    exit(1);
+    return 2;
   }
   glfwSetErrorCallback(glfw_error_cb);
 
@@ -314,11 +337,12 @@ int main(int argc, char* argv[]) {
   if (!window) {
     glfwTerminate();
     fprintf(stderr, "failed to create window\n");
-    exit(1);
+    return 2;
   }
 
   glfwSetFramebufferSizeCallback(window, glfw_resize_cb);
   glfwSetKeyCallback(window, glfw_key_cb);
+  glfwSetWindowFocusCallback(window, glfw_focus_cb);
 
   glfwMakeContextCurrent(window);
 
