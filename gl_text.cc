@@ -3,7 +3,7 @@
 #include <string.h>
 #include <GLFW/glfw3.h>
 
-#include "gl_text_font.h"
+#include "gl_text_font.hh"
 
 const float cell_size = 1;
 const float cell_division_size = 0;
