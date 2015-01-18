@@ -17,116 +17,119 @@ using namespace std;
 
 
 
-void render_level_state(const level_state& l, int window_w, int window_h) {
-  glBegin(GL_QUADS);
-
-  for (int y = 0; y < l.h; y++) {
-    for (int x = 0; x < l.w; x++) {
-      bool draw_center = false;
-      int param = l.at(x, y).param;
-      switch (l.at(x, y).type) {
-        case Empty:
-          glColor4f(0.0, 0.0, (float)param / 256, 1.0);
-          break;
-        case Circuit:
-          glColor4f(0.0, 0.8, 0.0, 1.0);
-          break;
-        case Rock:
-          glColor4f(0.6, 0.6, 0.6, 1.0);
-          break;
-        case Exit:
-          glColor4f(0.5, 1.0, 0.0, 1.0);
-          break;
-        case Player:
-          glColor4f(1.0, 0.0, 0.0, 1.0);
-          break;
-        case Item:
-          glColor4f(1.0, 0.0, 1.0, 1.0);
-          break;
-        case Block:
-          glColor4f(1.0, 1.0, 1.0, 1.0);
-          break;
-        case RoundBlock:
-          glColor4f(0.9, 0.9, 1.0, 1.0);
-          break;
-        case GreenBomb:
-          glColor4f(0.0, 1.0, 0.0, 1.0);
-          draw_center = true;
-          break;
-        case YellowBomb:
-          glColor4f(0.8, 0.8, 0.0, 1.0);
-          draw_center = true;
-          break;
-        case RedBomb:
-          glColor4f(param ? ((float)param / 256) : 1.0, 0.0, 0.0, 1.0);
-          draw_center = true;
-          break;
-        case YellowBombTrigger:
-          glColor4f(0.8, 0.8, 0.0, 1.0);
-          break;
-        case Explosion:
-          glColor4f((float)param / 256, (float)param / 512, 0.0, 1.0);
-          break;
-        case ItemDude:
-          glColor4f(0.0, 0.5, 1.0, 1.0);
-          break;
-        case BombDude:
-          glColor4f(1.0, 0.5, 0.0, 1.0);
-          break;
-        case LeftPortal:
-        case RightPortal:
-        case UpPortal:
-        case DownPortal:
-        case HorizontalPortal:
-        case VerticalPortal:
-        case Portal:
-          glColor4f(0.7, 0.0, 0.0, 1.0);
-          break;
-      }
-
-      glVertex3f(to_window(x, l.w), -to_window(y, l.h), 1);
-      glVertex3f(to_window(x + 1, l.w), -to_window(y, l.h), 1);
-      glVertex3f(to_window(x + 1, l.w), -to_window(y + 1, l.h), 1);
-      glVertex3f(to_window(x, l.w), -to_window(y + 1, l.h), 1);
-
-      if (draw_center) {
-        glColor4f(1.0, 1.0, 1.0, 1.0);
-        glVertex3f(to_window(4 * x + 1, 4 * l.w), -to_window(4 * y + 1, 4 * l.h), 1);
-        glVertex3f(to_window(4 * x + 3, 4 * l.w), -to_window(4 * y + 1, 4 * l.h), 1);
-        glVertex3f(to_window(4 * x + 3, 4 * l.w), -to_window(4 * y + 3, 4 * l.h), 1);
-        glVertex3f(to_window(4 * x + 1, 4 * l.w), -to_window(4 * y + 3, 4 * l.h), 1);
-      }
-    }
+static void render_cell_quads(const cell_state& cell, int x, int y, int l_w,
+    int l_h) {
+  bool draw_center = false;
+  switch (cell.type) {
+    case Empty:
+      glColor4f(0.0, 0.0, (float)cell.param / 256, 1.0);
+      break;
+    case Circuit:
+      glColor4f(0.0, 0.8, 0.0, 1.0);
+      break;
+    case Rock:
+      glColor4f(0.6, 0.6, 0.6, 1.0);
+      break;
+    case Exit:
+      glColor4f(0.5, 1.0, 0.0, 1.0);
+      break;
+    case Player:
+      glColor4f(1.0, 0.0, 0.0, 1.0);
+      break;
+    case Item:
+      glColor4f(1.0, 0.0, 1.0, 1.0);
+      break;
+    case Block:
+      glColor4f(1.0, 1.0, 1.0, 1.0);
+      break;
+    case RoundBlock:
+      glColor4f(0.9, 0.9, 1.0, 1.0);
+      break;
+    case GreenBomb:
+      glColor4f(0.0, 1.0, 0.0, 1.0);
+      draw_center = true;
+      break;
+    case YellowBomb:
+      glColor4f(0.8, 0.8, 0.0, 1.0);
+      draw_center = true;
+      break;
+    case RedBomb:
+      glColor4f(cell.param ? ((float)cell.param / 256) : 1.0, 0.0, 0.0, 1.0);
+      draw_center = true;
+      break;
+    case YellowBombTrigger:
+      glColor4f(0.8, 0.8, 0.0, 1.0);
+      break;
+    case Explosion:
+      glColor4f((float)cell.param / 256, (float)cell.param / 512, 0.0, 1.0);
+      break;
+    case ItemDude:
+      glColor4f(0.0, 0.5, 1.0, 1.0);
+      break;
+    case BombDude:
+      glColor4f(1.0, 0.5, 0.0, 1.0);
+      break;
+    case LeftPortal:
+    case RightPortal:
+    case UpPortal:
+    case DownPortal:
+    case HorizontalPortal:
+    case VerticalPortal:
+    case Portal:
+      glColor4f(0.7, 0.0, 0.0, 1.0);
+      break;
   }
 
+  glVertex3f(to_window(x, l_w), -to_window(y, l_h), 1);
+  glVertex3f(to_window(x + 1, l_w), -to_window(y, l_h), 1);
+  glVertex3f(to_window(x + 1, l_w), -to_window(y + 1, l_h), 1);
+  glVertex3f(to_window(x, l_w), -to_window(y + 1, l_h), 1);
+
+  if (draw_center) {
+    glColor4f(1.0, 1.0, 1.0, 1.0);
+    glVertex3f(to_window(4 * x + 1, 4 * l_w), -to_window(4 * y + 1, 4 * l_h), 1);
+    glVertex3f(to_window(4 * x + 3, 4 * l_w), -to_window(4 * y + 1, 4 * l_h), 1);
+    glVertex3f(to_window(4 * x + 3, 4 * l_w), -to_window(4 * y + 3, 4 * l_h), 1);
+    glVertex3f(to_window(4 * x + 1, 4 * l_w), -to_window(4 * y + 3, 4 * l_h), 1);
+  }
+}
+
+static void render_cell_tris(const cell_state& cell, int x, int y, int l_w,
+    int l_h) {
+  if (cell.is_left_portal()) {
+    glVertex3f(to_window(4 * x, 4 * l_w), -to_window(4 * y + 2, 4 * l_h), 1);
+    glVertex3f(to_window(4 * x + 1, 4 * l_w), -to_window(4 * y + 1, 4 * l_h), 1);
+    glVertex3f(to_window(4 * x + 1, 4 * l_w), -to_window(4 * y + 3, 4 * l_h), 1);
+  }
+  if (cell.is_right_portal()) {
+    glVertex3f(to_window(4 * x + 4, 4 * l_w), -to_window(4 * y + 2, 4 * l_h), 1);
+    glVertex3f(to_window(4 * x + 3, 4 * l_w), -to_window(4 * y + 1, 4 * l_h), 1);
+    glVertex3f(to_window(4 * x + 3, 4 * l_w), -to_window(4 * y + 3, 4 * l_h), 1);
+  }
+  if (cell.is_up_portal()) {
+    glVertex3f(to_window(4 * x + 2, 4 * l_w), -to_window(4 * y, 4 * l_h), 1);
+    glVertex3f(to_window(4 * x + 1, 4 * l_w), -to_window(4 * y + 1, 4 * l_h), 1);
+    glVertex3f(to_window(4 * x + 3, 4 * l_w), -to_window(4 * y + 1, 4 * l_h), 1);
+  }
+  if (cell.is_down_portal()) {
+    glVertex3f(to_window(4 * x + 2, 4 * l_w), -to_window(4 * y + 4, 4 * l_h), 1);
+    glVertex3f(to_window(4 * x + 1, 4 * l_w), -to_window(4 * y + 3, 4 * l_h), 1);
+    glVertex3f(to_window(4 * x + 3, 4 * l_w), -to_window(4 * y + 3, 4 * l_h), 1);
+  }
+}
+
+static void render_level_state(const level_state& l, int window_w, int window_h) {
+  glBegin(GL_QUADS);
+  for (int y = 0; y < l.h; y++)
+    for (int x = 0; x < l.w; x++)
+      render_cell_quads(l.at(x, y), x, y, l.w, l.h);
   glEnd();
 
   glBegin(GL_TRIANGLES);
   glColor4f(1.0, 1.0, 1.0, 1.0);
-  for (int y = 0; y < l.h; y++) {
-    for (int x = 0; x < l.w; x++) {
-      if (l.at(x, y).is_left_portal()) {
-        glVertex3f(to_window(4 * x, 4 * l.w), -to_window(4 * y + 2, 4 * l.h), 1);
-        glVertex3f(to_window(4 * x + 1, 4 * l.w), -to_window(4 * y + 1, 4 * l.h), 1);
-        glVertex3f(to_window(4 * x + 1, 4 * l.w), -to_window(4 * y + 3, 4 * l.h), 1);
-      }
-      if (l.at(x, y).is_right_portal()) {
-        glVertex3f(to_window(4 * x + 4, 4 * l.w), -to_window(4 * y + 2, 4 * l.h), 1);
-        glVertex3f(to_window(4 * x + 3, 4 * l.w), -to_window(4 * y + 1, 4 * l.h), 1);
-        glVertex3f(to_window(4 * x + 3, 4 * l.w), -to_window(4 * y + 3, 4 * l.h), 1);
-      }
-      if (l.at(x, y).is_up_portal()) {
-        glVertex3f(to_window(4 * x + 2, 4 * l.w), -to_window(4 * y, 4 * l.h), 1);
-        glVertex3f(to_window(4 * x + 1, 4 * l.w), -to_window(4 * y + 1, 4 * l.h), 1);
-        glVertex3f(to_window(4 * x + 3, 4 * l.w), -to_window(4 * y + 1, 4 * l.h), 1);
-      }
-      if (l.at(x, y).is_down_portal()) {
-        glVertex3f(to_window(4 * x + 2, 4 * l.w), -to_window(4 * y + 4, 4 * l.h), 1);
-        glVertex3f(to_window(4 * x + 1, 4 * l.w), -to_window(4 * y + 3, 4 * l.h), 1);
-        glVertex3f(to_window(4 * x + 3, 4 * l.w), -to_window(4 * y + 3, 4 * l.h), 1);
-      }
-    }
-  }
+  for (int y = 0; y < l.h; y++)
+    for (int x = 0; x < l.w; x++)
+      render_cell_tris(l.at(x, y), x, y, l.w, l.h);
   glEnd();
 
   if (l.num_items_remaining > 1)
@@ -154,7 +157,9 @@ void render_level_state(const level_state& l, int window_w, int window_h) {
         "SLOW");
 }
 
-void render_stripe_animation(int window_w, int window_h, int stripe_width,
+
+
+static void render_stripe_animation(int window_w, int window_h, int stripe_width,
     float br, float bg, float bb, float ba, float sr, float sg, float sb,
     float sa) {
   glBegin(GL_QUADS);
@@ -178,9 +183,51 @@ void render_stripe_animation(int window_w, int window_h, int stripe_width,
   glEnd();
 }
 
+static void render_paused_screen(int window_w, int window_h,
+    int level_index, bool player_did_win, bool player_did_lose) {
+  render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f, 0.6f, 0.0f,
+      0.0f, 0.0f, 0.1f);
+
+  float aspect_ratio = (float)window_w / window_h;
+  draw_text(0, 0.7, 1, 1, 1, 1, aspect_ratio, 0.03, true,
+      "MOVE BLOCKS AND EAT STUFF");
+
+  if (player_did_win)
+    draw_text(0, 0.3, 1, 1, 1, 1, aspect_ratio, 0.02, true,
+        "YOU WIN");
+  else {
+    if (player_did_lose)
+      draw_text(0, 0.3, 1, 0, 0, 1, aspect_ratio, 0.02, true,
+          "LEVEL %d - PRESS ENTER TO TRY AGAIN", level_index);
+    else
+      draw_text(0, 0.3, 1, 1, 1, 1, aspect_ratio, 0.02, true,
+          "LEVEL %d - PRESS ENTER TO PLAY", level_index);
+
+    draw_text(0, 0, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+        "UP/DOWN/LEFT/RIGHT: MOVE");
+    draw_text(0, -0.1, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+        "SPACE: DROP BOMB");
+    draw_text(0, -0.2, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+        "TAB: TOGGLE SPEED");
+    draw_text(0, -0.3, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+        "ENTER: PAUSE");
+    draw_text(0, -0.4, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+        "SHIFT+ESC: RESTART LEVEL");
+    draw_text(0, -0.5, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+        "ESC: EXIT");
+  }
+}
+
+
+
+enum game_phase {
+  Playing = 0,
+  Paused,
+  Instructions,
+};
 
 level_state game;
-bool paused = true;
+game_phase phase = Paused;
 bool player_did_lose = false;
 bool should_reload_state = false;
 enum player_impulse current_impulse = None;
@@ -188,15 +235,20 @@ enum player_impulse current_impulse = None;
 static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
     int action, int mods) {
 
-  if (action == GLFW_PRESS || action == GLFW_REPEAT) {
-    if (key == GLFW_KEY_ESCAPE) {
+  if (action == GLFW_PRESS) {
+    if ((key == '`') && (mods & GLFW_MOD_CONTROL))
+      game.player_did_win = true;
+    else if (key == GLFW_KEY_ESCAPE) {
       if (mods & GLFW_MOD_SHIFT)
         should_reload_state = true;
       else
         glfwSetWindowShouldClose(window, 1);
 
     } else if (key == GLFW_KEY_ENTER) {
-      paused = !paused;
+      if (phase == Playing)
+        phase = Paused;
+      else
+        phase = Playing;
       player_did_lose = false;
 
     } else if (key == GLFW_KEY_TAB) {
@@ -306,14 +358,20 @@ int main(int argc, char* argv[]) {
     } else {
 
       if (!game.player_is_alive()) {
-        paused = true;
+        phase = Paused;
         player_did_lose = true;
         game = initial_state[level_index];
+
       } else if (game.player_did_win) {
-        paused = true;
+        phase = Paused;
+        if (level_index < initial_state.size() - 1) {
+          level_index++;
+          game = initial_state[level_index];
+          level_is_valid = game.validate();
+        }
 
       } else if (should_reload_state) {
-        paused = true;
+        phase = Paused;
         game = initial_state[level_index];
         should_reload_state = false;
 
@@ -322,53 +380,18 @@ int main(int argc, char* argv[]) {
         uint64_t now_time = now();
         uint64_t update_diff = now_time - last_update_time;
         if (update_diff >= usec_per_update) {
-          if (!paused)
+          if (phase == Playing)
             game.exec_frame(current_impulse);
           last_update_time = now_time;
         }
+      }
 
+      if (!game.player_did_win)
         render_level_state(game, window_w, window_h);
-        if (paused)
-          render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f,
-              0.6f, 0.0f, 0.0f, 0.0f, 0.1f);
-      }
 
-      if (paused) {
-        draw_text(0, 0.7, 1, 1, 1, 1, (float)window_w / window_h, 0.03, true,
-            "MOVE BLOCKS AND EAT STUFF");
-
-        if (game.player_did_win) {
-          if (level_index < initial_state.size() - 1) {
-            level_index++;
-            if (level_index < initial_state.size()) {
-              game = initial_state[level_index];
-            }
-
-          } else
-            draw_text(0, 0.3, 1, 1, 1, 1, (float)window_w / window_h, 0.02, true,
-                "YOU WIN");
-        } else {
-          if (player_did_lose)
-            draw_text(0, 0.3, 1, 0, 0, 1, (float)window_w / window_h, 0.02, true,
-                "LEVEL %d - PRESS ENTER TO TRY AGAIN", level_index);
-          else
-            draw_text(0, 0.3, 1, 1, 1, 1, (float)window_w / window_h, 0.02, true,
-                "LEVEL %d - PRESS ENTER TO PLAY", level_index);
-
-          draw_text(0, 0, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
-              "UP/DOWN/LEFT/RIGHT: MOVE");
-          draw_text(0, -0.1, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
-              "SPACE: DROP BOMB");
-          draw_text(0, -0.2, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
-              "TAB: TOGGLE SPEED");
-          draw_text(0, -0.3, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
-              "ENTER: PAUSE");
-          draw_text(0, -0.4, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
-              "SHIFT+ESC: RESTART LEVEL");
-          draw_text(0, -0.5, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
-              "ESC: EXIT");
-        }
-      }
+      if (phase == Paused)
+        render_paused_screen(window_w, window_h, level_index,
+            game.player_did_win, player_did_lose);
     }
 
     glfwSwapBuffers(window);
