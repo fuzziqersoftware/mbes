@@ -1,7 +1,9 @@
+#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/param.h>
 #include <sys/time.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include <CoreFoundation/CoreFoundation.h>
@@ -13,6 +15,7 @@
 
 #include "gl_text.hh"
 #include "level.hh"
+#include "level_completion.hh"
 #include "util.hh"
 
 using namespace std;
@@ -191,7 +194,9 @@ static void render_level_state(const level_state& l, int window_w, int window_h)
 
 
 static void render_paused_screen(int window_w, int window_h,
-    int level_index, bool player_did_win, bool player_did_lose) {
+    const vector<level_completion>& completion, int level_index,
+    bool player_did_win, bool player_did_lose) {
+
   render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f, 0.6f, 0.0f,
       0.0f, 0.0f, 0.1f);
 
@@ -210,6 +215,10 @@ static void render_paused_screen(int window_w, int window_h,
       draw_text(0, 0.3, 1, 1, 1, 1, aspect_ratio, 0.02, true,
           "LEVEL %d - PRESS ENTER TO PLAY", level_index);
 
+    if (completion[level_index] == Completed)
+      draw_text(0, 0.1, 0.5, 1, 0.5, 1, aspect_ratio, 0.01, true,
+          "YOU HAVE ALREADY COMPLETED THIS LEVEL");
+
     draw_text(0, 0, 1, 1, 1, 1, aspect_ratio, 0.01, true,
         "UP/DOWN/LEFT/RIGHT: MOVE");
     draw_text(0, -0.1, 1, 1, 1, 1, aspect_ratio, 0.01, true,
@@ -218,9 +227,11 @@ static void render_paused_screen(int window_w, int window_h,
         "TAB: TOGGLE SPEED");
     draw_text(0, -0.3, 1, 1, 1, 1, aspect_ratio, 0.01, true,
         "ENTER: PAUSE");
-    draw_text(0, -0.4, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-        "SHIFT+ESC: RESTART LEVEL");
     draw_text(0, -0.5, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+        "SHIFT+ESC: RESTART LEVEL");
+    draw_text(0, -0.6, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+        "CTRL+LEFT/RIGHT: CHANGE LEVEL");
+    draw_text(0, -0.7, 1, 1, 1, 1, aspect_ratio, 0.01, true,
         "ESC: EXIT");
   }
 }
@@ -238,16 +249,26 @@ game_phase phase = Paused;
 bool player_did_lose = false;
 bool should_reload_state = false;
 enum player_impulse current_impulse = None;
+int level_index = -1;
+int should_change_to_level = -1;
 
 static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
     int action, int mods) {
 
+  if (((action == GLFW_PRESS) || (action == GLFW_REPEAT)) && (mods & GLFW_MOD_CONTROL)) {
+    if (key == GLFW_KEY_LEFT) {
+      should_change_to_level = level_index - 1;
+      return;
+    } else if (key == GLFW_KEY_RIGHT) {
+      should_change_to_level = level_index + 1;
+      return;
+    }
+  }
+
   if (action == GLFW_PRESS) {
-    if ((key == '`') && (mods & GLFW_MOD_CONTROL))
-      game.player_did_win = true;
-    else if (key == GLFW_KEY_ESCAPE) {
+    if (key == GLFW_KEY_ESCAPE) {
       if (mods & GLFW_MOD_SHIFT)
-        should_reload_state = true;
+        should_change_to_level = level_index;
       else
         glfwSetWindowShouldClose(window, 1);
 
@@ -264,23 +285,29 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
       else
         game.updates_per_second = 20.0f;
 
-    } else {
-      if (key == GLFW_KEY_LEFT) {
+    } else if (key == GLFW_KEY_LEFT) {
+      if (mods & GLFW_MOD_CONTROL) {
+        should_change_to_level = level_index - 1;
+      } else {
         current_impulse = Left;
         phase = Playing;
-      } else if (key == GLFW_KEY_RIGHT) {
+      }
+    } else if (key == GLFW_KEY_RIGHT) {
+      if (mods & GLFW_MOD_CONTROL) {
+        should_change_to_level = level_index + 1;
+      } else {
         current_impulse = Right;
         phase = Playing;
-      } else if (key == GLFW_KEY_UP) {
-        current_impulse = Up;
-        phase = Playing;
-      } else if (key == GLFW_KEY_DOWN) {
-        current_impulse = Down;
-        phase = Playing;
-      } else if (key == GLFW_KEY_SPACE) {
-        current_impulse = DropBomb;
-        phase = Playing;
       }
+    } else if (key == GLFW_KEY_UP) {
+      current_impulse = Up;
+      phase = Playing;
+    } else if (key == GLFW_KEY_DOWN) {
+      current_impulse = Down;
+      phase = Playing;
+    } else if (key == GLFW_KEY_SPACE) {
+      current_impulse = DropBomb;
+      phase = Playing;
     }
   }
 
@@ -313,7 +340,7 @@ static void glfw_error_cb(int error, const char* description) {
 int main(int argc, char* argv[]) {
 
   const char* level_filename = (argc > 1) ? argv[1] : NULL;
-  int level_index = (argc > 2) ? atoi(argv[2]) : 0;
+  level_index = (argc > 2) ? atoi(argv[2]) : -1;
 
   char filename_buffer[MAXPATHLEN];
   if (!level_filename) {
@@ -342,10 +369,22 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  if ((level_index >= initial_state.size()) || (level_index < 0)) {
-    fprintf(stderr, "invalid level number\n");
-    return 1;
+  struct passwd *pw = getpwuid(getuid());
+  const char *homedir = pw->pw_dir;
+  sprintf(filename_buffer, "%s/.mbes_completion", homedir);
+  vector<level_completion> completion = load_level_completion_state(filename_buffer);
+  completion.resize(initial_state.size());
+
+  if (level_index < 0) {
+    // start at the first non-completed level
+    for (level_index = 0; (completion[level_index] == Completed) &&
+        (level_index < initial_state.size()); level_index++);
   }
+
+  if (level_index >= initial_state.size()) {
+    level_index = 0;
+  }
+
   game = initial_state[level_index];
   bool level_is_valid = game.validate();
 
@@ -411,16 +450,25 @@ int main(int argc, char* argv[]) {
 
       } else if (game.player_did_win) {
         phase = Paused;
+        completion[level_index] = Completed;
         if (level_index < initial_state.size() - 1) {
           level_index++;
           game = initial_state[level_index];
           level_is_valid = game.validate();
+          if (completion[level_index] != Completed)
+            completion[level_index] = Attempted;
         }
+        save_level_completion_state(filename_buffer, completion);
 
-      } else if (should_reload_state) {
+      } else if ((should_change_to_level >= 0) && (should_change_to_level < initial_state.size())) {
         phase = Paused;
+        level_index = should_change_to_level;
         game = initial_state[level_index];
-        should_reload_state = false;
+        if (completion[level_index] != Completed)
+          completion[level_index] = Attempted;
+        save_level_completion_state(filename_buffer, completion);
+        should_change_to_level = -1;
+        player_did_lose = false;
 
       } else {
         uint64_t usec_per_update = 1000000.0 / game.updates_per_second;
@@ -437,7 +485,7 @@ int main(int argc, char* argv[]) {
         render_level_state(game, window_w, window_h);
 
       if (phase == Paused)
-        render_paused_screen(window_w, window_h, level_index,
+        render_paused_screen(window_w, window_h, completion, level_index,
             game.player_did_win, player_did_lose);
     }
 
