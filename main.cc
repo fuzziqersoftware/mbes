@@ -197,11 +197,18 @@ static void render_paused_screen(int window_w, int window_h,
     const vector<level_completion>& completion, int level_index,
     bool player_did_win, bool player_did_lose) {
 
+  size_t num_completed = 0;
+  for (const auto& it : completion)
+    if (it == Completed)
+      num_completed++;
+
   render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f, 0.6f, 0.0f,
       0.0f, 0.0f, 0.1f);
 
   float aspect_ratio = (float)window_w / window_h;
-  draw_text(0, 0.7, 1, 1, 1, 1, aspect_ratio, 0.03, true,
+  draw_text(0, 0.9, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
+      "FUZZIQER SOFTWARE");
+  draw_text(0, 0.7, 1, 1, 1, 1, (float)window_w / window_h, 0.03, true,
       "MOVE BLOCKS AND EAT STUFF");
 
   if (player_did_win)
@@ -217,21 +224,24 @@ static void render_paused_screen(int window_w, int window_h,
 
     if (completion[level_index] == Completed)
       draw_text(0, 0.1, 0.5, 1, 0.5, 1, aspect_ratio, 0.01, true,
-          "YOU HAVE ALREADY COMPLETED THIS LEVEL");
+          "YOU HAVE ALREADY COMPLETED THIS LEVEL (%lu/%lu)", num_completed, completion.size());
+    else
+      draw_text(0, 0.1, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+          "YOU HAVE COMPLETED %lu OF %lu LEVELS", num_completed, completion.size());
 
-    draw_text(0, 0, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-        "UP/DOWN/LEFT/RIGHT: MOVE");
     draw_text(0, -0.1, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-        "SPACE: DROP BOMB");
+        "UP/DOWN/LEFT/RIGHT: MOVE");
     draw_text(0, -0.2, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-        "TAB: TOGGLE SPEED");
+        "SPACE: DROP BOMB");
     draw_text(0, -0.3, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+        "TAB: TOGGLE SPEED");
+    draw_text(0, -0.4, 1, 1, 1, 1, aspect_ratio, 0.01, true,
         "ENTER: PAUSE");
-    draw_text(0, -0.5, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-        "SHIFT+ESC: RESTART LEVEL");
     draw_text(0, -0.6, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-        "CTRL+LEFT/RIGHT: CHANGE LEVEL");
+        "SHIFT+ESC: RESTART LEVEL");
     draw_text(0, -0.7, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+        "CTRL+LEFT/RIGHT: CHANGE LEVEL");
+    draw_text(0, -0.8, 1, 1, 1, 1, aspect_ratio, 0.01, true,
         "ESC: EXIT");
   }
 }
@@ -434,8 +444,6 @@ int main(int argc, char* argv[]) {
     if (!level_is_valid) {
       render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f, 0.6f,
           1.0, 0.0, 0.0, 0.3);
-      draw_text(0, 0.7, 1, 1, 1, 1, (float)window_w / window_h, 0.03, true,
-          "MOVE BLOCKS AND EAT STUFF");
       draw_text(0, 0.3, 1, 0, 0, 1, (float)window_w / window_h, 0.02, true,
           "LEVEL IS CORRUPT");
       draw_text(0, 0.0, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
