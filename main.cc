@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/param.h>
 #include <sys/time.h>
 #include <unistd.h>
 
+#include <CoreFoundation/CoreFoundation.h>
 #include <GLFW/glfw3.h>
 
 #include <list>
@@ -312,6 +314,26 @@ int main(int argc, char* argv[]) {
 
   const char* level_filename = (argc > 1) ? argv[1] : NULL;
   int level_index = (argc > 2) ? atoi(argv[2]) : 0;
+
+  char filename_buffer[MAXPATHLEN];
+  if (!level_filename) {
+    CFURLRef app_url = CFBundleCopyBundleURL(CFBundleGetMainBundle());
+    CFStringRef path = CFURLCopyFileSystemPath(app_url, kCFURLPOSIXPathStyle);
+    const char *p = CFStringGetCStringPtr(path, CFStringGetSystemEncoding());
+
+    // if we're in an app bundle, look in Resources/ for levels; else look in
+    // the executable directory
+    size_t p_len = strlen(p);
+    if ((p_len >= 4) && !strcmp(p + p_len - 4, ".app"))
+      sprintf(filename_buffer, "%s/Contents/Resources/levels.dat", p);
+    else
+      sprintf(filename_buffer, "%s/levels.dat", p);
+    level_filename = filename_buffer;
+
+    CFRelease(app_url);
+    CFRelease(path);
+  }
+
   vector<level_state> initial_state;
   try {
     initial_state = load_level_index(level_filename);
@@ -319,6 +341,7 @@ int main(int argc, char* argv[]) {
     fprintf(stderr, "can\'t load level index: %s\n", e.what());
     return 1;
   }
+
   if ((level_index >= initial_state.size()) || (level_index < 0)) {
     fprintf(stderr, "invalid level number\n");
     return 1;
