@@ -36,6 +36,7 @@ enum cell_type {
   Item,
   Block,
   RoundBlock,
+  BlueBomb,
   GreenBomb,
   YellowBomb,
   YellowBombTrigger,

@@ -76,6 +76,10 @@ static void render_cell_quads(const cell_state& cell, int x, int y, int l_w,
     case RoundBlock:
       glColor4f(0.9, 0.9, 1.0, 1.0);
       break;
+    case BlueBomb:
+      glColor4f(0.0, 0.5, 1.0, 1.0);
+      draw_center = true;
+      break;
     case GreenBomb:
       glColor4f(0.0, 1.0, 0.0, 1.0);
       draw_center = true;
