@@ -458,6 +458,7 @@ int main(int argc, char* argv[]) {
 
       } else if (game.player_did_win) {
         phase = Paused;
+        player_did_lose = false;
         completion[level_index] = Completed;
         if (level_index < initial_state.size() - 1) {
           level_index++;
