@@ -157,10 +157,13 @@ bool level_state::validate() const {
 
 
 
-void level_state::exec_frame(enum player_impulse impulse) {
+uint64_t level_state::exec_frame(enum player_impulse impulse) {
+
+  uint64_t events_occurred = NoEvents;
+
   for (int y = this->h - 1; y >= 0; y--) {
     for (int x = 0; x < this->w; x++) {
-      // rule #0: explosions disappear, items appear
+      // rule #0: explosions disappear
       if (this->at(x, y).type == Explosion) {
         this->at(x, y).param -= 16;
         if (this->at(x, y).param <= 0) {
@@ -189,13 +192,17 @@ void level_state::exec_frame(enum player_impulse impulse) {
       // rule #2: rocks, items and green bombs fall
       if (this->at(x, y).should_fall() && !this->at(x, y).moved) {
         if (this->at(x, y + 1).type == Empty) {
+          events_occurred |= ObjectFalling;
           this->at(x, y + 1) = cell_state(this->at(x, y).type, Falling, true);
           this->at(x, y) = cell_state(Empty);
         } else if (this->at(x, y + 1).is_volatile() && (this->at(x, y).param == Falling)) {
           this->pending_explosions.emplace_back(x, y + 1, 1, 0, this->at(x, y + 1).explosion_type());
         } else if ((this->at(x, y).type == GreenBomb || this->at(x, y).type == BlueBomb) && (this->at(x, y).param == Falling)) {
           this->pending_explosions.emplace_back(x, y, 1, 2, this->at(x, y).explosion_type());
+          this->at(x, y).param = Resting;
         } else {
+          if (this->at(x, y).param == Falling)
+            events_occurred |= ObjectLanded;
           this->at(x, y).param = Resting;
         }
       }
@@ -257,6 +264,11 @@ void level_state::exec_frame(enum player_impulse impulse) {
   list<explosion_info> new_explosions;
   for (auto it = this->pending_explosions.begin(); it != this->pending_explosions.end();) {
     if (it->frames == 0) {
+      if (it->type == ItemExplosion)
+        events_occurred |= ItemExploded;
+      else
+        events_occurred |= Exploded;
+
       for (int yy = -it->size; yy <= it->size; yy++) {
         for (int xx = -it->size; xx <= it->size; xx++) {
           if (this->at(it->x + xx, it->y + yy).destroyable()) {
@@ -298,13 +310,19 @@ void level_state::exec_frame(enum player_impulse impulse) {
     player_target_cell = &this->at(this->player_x + 1, this->player_y);
 
   if (player_target_cell) {
-    if (player_target_cell->type == Item)
+    if (player_target_cell->type == Item) {
+      events_occurred |= ItemCollected;
       this->num_items_remaining--;
-    if (player_target_cell->type == RedBomb)
+    }
+    if (player_target_cell->type == RedBomb) {
+      events_occurred |= RedBombCollected;
       this->num_red_bombs++;
+    }
     if ((player_target_cell->type == Exit) && (this->num_red_bombs >= 0) &&
-        (this->num_items_remaining <= 0))
+        (this->num_items_remaining <= 0)) {
+      events_occurred |= PlayerWon;
       this->player_did_win = true;
+    }
 
     // if the player is moving into a portal, put them on the other side of it
     cell_state* portal_target_cell = NULL;
@@ -322,6 +340,7 @@ void level_state::exec_frame(enum player_impulse impulse) {
       if (this->player_will_drop_bomb) {
         this->num_red_bombs--;
         this->at(this->player_x, this->player_y) = cell_state(RedBomb, 1);
+        events_occurred |= RedBombDropped;
       } else {
         this->at(this->player_x, this->player_y) = cell_state(Empty);
       }
@@ -348,6 +367,7 @@ void level_state::exec_frame(enum player_impulse impulse) {
       else if ((impulse == Down) && player_target_cell->is_pushable_vertical())
         push_target_cell = &this->at(this->player_x, this->player_y + 2);
       if (push_target_cell && push_target_cell->type == Empty) {
+        events_occurred |= ObjectPushed;
         *push_target_cell = *player_target_cell;
         *player_target_cell = cell_state(Empty);
       }
@@ -358,9 +378,12 @@ void level_state::exec_frame(enum player_impulse impulse) {
             for (int xx = 0; xx < this->w; xx++)
               if (this->at(xx, yy).type == YellowBomb)
                 this->pending_explosions.emplace_back(xx, yy);
+        if (player_target_cell->type == Circuit)
+          events_occurred |= CircuitEaten;
 
         *player_target_cell = this->at(this->player_x, this->player_y);
         if (this->player_will_drop_bomb) {
+          events_occurred |= RedBombDropped;
           this->num_red_bombs--;
           this->at(this->player_x, this->player_y) = cell_state(RedBomb, 1);
         } else {
@@ -384,6 +407,8 @@ void level_state::exec_frame(enum player_impulse impulse) {
   for (int y = 0; y < this->h; y++)
     for (int x = 0; x < this->w; x++)
       this->at(x, y).moved = false;
+
+  return events_occurred;
 }
 
 

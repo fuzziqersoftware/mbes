@@ -13,6 +13,7 @@
 #include <stdexcept>
 #include <vector>
 
+#include "audio.hh"
 #include "gl_text.hh"
 #include "level.hh"
 #include "level_completion.hh"
@@ -302,26 +303,33 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
     } else if (key == GLFW_KEY_LEFT) {
       if (mods & GLFW_MOD_CONTROL) {
         should_change_to_level = level_index - 1;
+        player_did_lose = false;
       } else {
         current_impulse = Left;
         phase = Playing;
+        player_did_lose = false;
       }
     } else if (key == GLFW_KEY_RIGHT) {
       if (mods & GLFW_MOD_CONTROL) {
         should_change_to_level = level_index + 1;
+        player_did_lose = false;
       } else {
         current_impulse = Right;
         phase = Playing;
+        player_did_lose = false;
       }
     } else if (key == GLFW_KEY_UP) {
       current_impulse = Up;
       phase = Playing;
+      player_did_lose = false;
     } else if (key == GLFW_KEY_DOWN) {
       current_impulse = Down;
       phase = Playing;
+      player_did_lose = false;
     } else if (key == GLFW_KEY_SPACE) {
       current_impulse = DropBomb;
       phase = Playing;
+      player_did_lose = false;
     }
   }
 
@@ -352,6 +360,8 @@ static void glfw_error_cb(int error, const char* description) {
 }
 
 int main(int argc, char* argv[]) {
+
+  srand(time(NULL) ^ getpid());
 
   const char* level_filename = (argc > 1) ? argv[1] : NULL;
   level_index = (argc > 2) ? atoi(argv[2]) : -1;
@@ -401,6 +411,14 @@ int main(int argc, char* argv[]) {
 
   game = initial_state[level_index];
   bool level_is_valid = game.validate();
+
+  init_al();
+  sine_wave get_item_sound(880, 0.1);
+  sine_wave drop_bomb_sound(440, 0.1);
+  sine_wave circuit_eaten_sound(1760, 0.05);
+  split_noise explosion_sound(10, 1.5);
+  split_noise landing_sound(10, 0.02);
+  // TODO more sounds
 
   if (!glfwInit()) {
     fprintf(stderr, "failed to initialize GLFW\n");
@@ -488,8 +506,19 @@ int main(int argc, char* argv[]) {
         uint64_t now_time = now();
         uint64_t update_diff = now_time - last_update_time;
         if (update_diff >= usec_per_update) {
-          if (phase == Playing)
-            game.exec_frame(current_impulse);
+          if (phase == Playing) {
+            uint64_t events = game.exec_frame(current_impulse);
+            if (events & (RedBombCollected | ItemCollected))
+              get_item_sound.play();
+            if (events & RedBombDropped)
+              drop_bomb_sound.play();
+            if (events & CircuitEaten)
+              circuit_eaten_sound.play();
+            if (events & (Exploded | ItemExploded))
+              explosion_sound.play();
+            if (events & ObjectLanded)
+              landing_sound.play();
+          }
           last_update_time = now_time;
         }
       }

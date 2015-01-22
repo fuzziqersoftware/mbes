@@ -58,6 +58,20 @@ enum explosion_type {
   ItemExplosion,
 };
 
+enum events_mask {
+  NoEvents         = 0x0000,
+  ObjectFalling    = 0x0001,
+  ObjectLanded     = 0x0002,
+  ItemCollected    = 0x0004,
+  CircuitEaten     = 0x0008,
+  RedBombCollected = 0x0010,
+  RedBombDropped   = 0x0020,
+  ObjectPushed     = 0x0040,
+  Exploded         = 0x0080,
+  ItemExploded     = 0x0100,
+  PlayerWon        = 0x0200,
+};
+
 struct cell_state {
   cell_type type;
   int param;
@@ -114,7 +128,7 @@ struct level_state {
   bool player_is_alive() const;
   bool validate() const;
 
-  void exec_frame(enum player_impulse impulse);
+  uint64_t exec_frame(enum player_impulse impulse);
 };
 
 vector<level_state> load_level_index(const char* filename);
