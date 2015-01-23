@@ -118,7 +118,7 @@ white_noise::white_noise(float seconds, float volume, uint32_t sample_rate) :
 }
 
 split_noise::split_noise(int split_distance, float seconds, float volume,
-    uint32_t sample_rate) : generated_sound(seconds, sample_rate),
+    bool fade_out, uint32_t sample_rate) : generated_sound(seconds, sample_rate),
     split_distance(split_distance), volume(volume) {
 
   for (size_t x = 0; x < this->num_samples; x += split_distance) {
@@ -139,8 +139,10 @@ split_noise::split_noise(int split_distance, float seconds, float volume,
   }
 
   // TODO generalize
-  for (size_t x = 0; x < this->num_samples; x++) {
-    this->samples[x] *= (float)(this->num_samples - x) / this->num_samples;
+  if (fade_out) {
+    for (size_t x = 0; x < this->num_samples; x++) {
+      this->samples[x] *= (float)(this->num_samples - x) / this->num_samples;
+    }
   }
   this->create_al_objects();
 }

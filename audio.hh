@@ -59,7 +59,7 @@ protected:
 class split_noise : public generated_sound {
 public:
   split_noise(int split_distance, float seconds, float volume = 1.0,
-      uint32_t sample_rate = 44100);
+      bool fade_out = false, uint32_t sample_rate = 44100);
 
 protected:
   int split_distance;

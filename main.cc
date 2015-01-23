@@ -416,8 +416,9 @@ int main(int argc, char* argv[]) {
   sine_wave get_item_sound(880, 0.1);
   sine_wave drop_bomb_sound(440, 0.1);
   sine_wave circuit_eaten_sound(1760, 0.05);
-  split_noise explosion_sound(10, 1.5);
-  split_noise landing_sound(10, 0.02);
+  split_noise explosion_sound(10, 1.5, 1.0, true);
+  split_noise landing_sound(10, 0.02, 1.0, false);
+  split_noise push_sound(10, 0.05, 1.0, false);
   // TODO more sounds
 
   if (!glfwInit()) {
@@ -518,6 +519,8 @@ int main(int argc, char* argv[]) {
               explosion_sound.play();
             if (events & ObjectLanded)
               landing_sound.play();
+            if (events & ObjectPushed)
+              push_sound.play();
           }
           last_update_time = now_time;
         }
