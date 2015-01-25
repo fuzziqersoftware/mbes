@@ -188,7 +188,7 @@ static void render_level_state(const level_state& l, int window_w, int window_h)
     draw_text(-0.99, -0.8, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
         "%d RED BOMBS IN DEBT", -l.num_red_bombs);
 
-  if (l.updates_per_second < 20.0f) {
+  if (l.updates_per_second != 20.0f) {
     render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
         0.0f, 0.0f, 0.1f);
     //draw_text(-0.99, 0.97, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
@@ -266,6 +266,7 @@ bool should_reload_state = false;
 enum player_impulse current_impulse = None;
 int level_index = -1;
 int should_change_to_level = -1;
+bool debug_mode = false;
 
 static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
     int action, int mods) {
@@ -288,14 +289,21 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
         glfwSetWindowShouldClose(window, 1);
 
     } else if (key == GLFW_KEY_ENTER) {
-      if (phase == Playing)
-        phase = Paused;
-      else
-        phase = Playing;
-      player_did_lose = false;
+      if (mods & GLFW_MOD_SHIFT)
+        debug_mode = !debug_mode;
+
+      else {
+        if (phase == Playing)
+          phase = Paused;
+        else
+          phase = Playing;
+        player_did_lose = false;
+      }
 
     } else if (key == GLFW_KEY_TAB) {
-      if (game.updates_per_second == 20.0f)
+      if (mods & GLFW_MOD_SHIFT)
+        game.updates_per_second = 200.0f;
+      else if (game.updates_per_second == 20.0f)
         game.updates_per_second = 2.0f;
       else
         game.updates_per_second = 20.0f;
@@ -527,6 +535,12 @@ int main(int argc, char* argv[]) {
 
       if (!game.player_did_win)
         render_level_state(game, window_w, window_h);
+
+      if (debug_mode) {
+        draw_text(-0.99, 0.97, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
+            "AT %d, %d - CELL INDEX %d - FILE OFFSET %X", game.player_x, game.player_y,
+            game.player_y * 60 + game.player_x, 1536 * level_index + game.player_y * 60 + game.player_x);
+      }
 
       if (phase == Paused)
         render_paused_screen(window_w, window_h, completion, level_index,
