@@ -19,7 +19,6 @@ enum player_impulse {
   Down,
   Left,
   Right,
-  DropBomb,
 };
 
 enum block_fall_action {
@@ -128,6 +127,7 @@ struct level_state {
   bool player_is_alive() const;
   bool validate() const;
 
+  void player_drop_bomb();
   uint64_t exec_frame(enum player_impulse impulse);
 };
 

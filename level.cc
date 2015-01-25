@@ -157,6 +157,10 @@ bool level_state::validate() const {
 
 
 
+void level_state::player_drop_bomb() {
+  this->player_will_drop_bomb = true;
+}
+
 uint64_t level_state::exec_frame(enum player_impulse impulse) {
 
   uint64_t events_occurred = NoEvents;
@@ -296,9 +300,6 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
     this->pending_explosions.push_back(it);
 
   // rule #2: players can have impulses
-  if (impulse == DropBomb)
-    this->player_will_drop_bomb = true;
-
   cell_state* player_target_cell = NULL;
   if (impulse == Up)
     player_target_cell = &this->at(this->player_x, this->player_y - 1);

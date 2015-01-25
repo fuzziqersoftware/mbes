@@ -327,7 +327,7 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
       phase = Playing;
       player_did_lose = false;
     } else if (key == GLFW_KEY_SPACE) {
-      current_impulse = DropBomb;
+      game.player_drop_bomb();
       phase = Playing;
       player_did_lose = false;
     }
@@ -339,8 +339,7 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
     if (((key == GLFW_KEY_LEFT) && (current_impulse == Left)) ||
         ((key == GLFW_KEY_RIGHT) && (current_impulse == Right)) ||
         ((key == GLFW_KEY_UP) && (current_impulse == Up)) ||
-        ((key == GLFW_KEY_DOWN) && (current_impulse == Down)) ||
-        ((key == GLFW_KEY_SPACE) && (current_impulse == DropBomb)))
+        ((key == GLFW_KEY_DOWN) && (current_impulse == Down)))
       current_impulse = None;
   }
 }
