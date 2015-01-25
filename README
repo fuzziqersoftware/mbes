@@ -1,0 +1,38 @@
+Move Blocks and Eat Stuff is a puzzle/strategy game based on the ideas and
+mechanics of Supaplex (http://www.elmerproductions.com/sp/). You could consider
+Move Blocks and Eat Stuff to be a minimalist interpretation of Supaplex, but
+really that would be giving me too much credit.
+
+
+Your goal in each level is to collect all the items (magenta) and then go to the
+exit (lime-green). On some levels there may be extra items that you don't need
+to collect. There are also lots of other objects you can interact with - rocks,
+bombs, enemies, triggers, and more.
+
+You lose if something explodes next to you (an enemy or bomb) or something falls
+on you. Unlike in Supaplex, the enemies don't hurt you upon contact, but they do
+tend to get in the way. Blow them up by dropping something on them - the blue
+dudes will turn into items when you destroy them!
+
+
+Some notable differences from Supaplex's rules:
+- You can use bombs you don't have. However, if you're in debt (have used more
+  bombs than you have collected), then you won't be able to finish the level.
+- After dropping a bomb, you can pick it up again before it explodes. This
+  technique is required in some levels.
+- Triggers disappear when used. (In Supaplex, the terminals remained solid.)
+- Both types of enemies move at the same speed.
+
+
+When you run Move Blocks and Eat Stuff, it will start at the latest level you
+haven't yet completed. To reset the completion states for all levels, delete
+ ~/.mbes_completion.
+
+
+Building:
+- Install Xcode (or some other variant of GCC).
+- Put a levels.dat file in the same directory as the source. (You can get a
+  levels.dat file from the Supaplex site, linked above. Rename it to lowercase.)
+- Run `make`. This will create Move Blocks and Eat Stuff.app.
+- Run Move Blocks and Eat Stuff.app. Play the game. Be impressed with the
+  graphics and sound.
