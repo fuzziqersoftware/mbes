@@ -245,7 +245,7 @@ static void render_paused_screen(int window_w, int window_h,
     draw_text(0, -0.6, 1, 1, 1, 1, aspect_ratio, 0.01, true,
         "SHIFT+ESC: RESTART LEVEL");
     draw_text(0, -0.7, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-        "CTRL+LEFT/RIGHT: CHANGE LEVEL");
+        "SHIFT+LEFT/RIGHT: CHANGE LEVEL");
     draw_text(0, -0.8, 1, 1, 1, 1, aspect_ratio, 0.01, true,
         "ESC: EXIT");
   }
@@ -271,7 +271,7 @@ bool debug_mode = false;
 static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
     int action, int mods) {
 
-  if (((action == GLFW_PRESS) || (action == GLFW_REPEAT)) && (mods & GLFW_MOD_CONTROL)) {
+  if (((action == GLFW_PRESS) || (action == GLFW_REPEAT)) && (mods & GLFW_MOD_SHIFT)) {
     if (key == GLFW_KEY_LEFT) {
       should_change_to_level = level_index - 1;
       return;
@@ -309,23 +309,13 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
         game.updates_per_second = 20.0f;
 
     } else if (key == GLFW_KEY_LEFT) {
-      if (mods & GLFW_MOD_CONTROL) {
-        should_change_to_level = level_index - 1;
-        player_did_lose = false;
-      } else {
-        current_impulse = Left;
-        phase = Playing;
-        player_did_lose = false;
-      }
+      current_impulse = Left;
+      phase = Playing;
+      player_did_lose = false;
     } else if (key == GLFW_KEY_RIGHT) {
-      if (mods & GLFW_MOD_CONTROL) {
-        should_change_to_level = level_index + 1;
-        player_did_lose = false;
-      } else {
-        current_impulse = Right;
-        phase = Playing;
-        player_did_lose = false;
-      }
+      current_impulse = Right;
+      phase = Playing;
+      player_did_lose = false;
     } else if (key == GLFW_KEY_UP) {
       current_impulse = Up;
       phase = Playing;
