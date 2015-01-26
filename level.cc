@@ -146,6 +146,28 @@ bool level_state::player_is_alive() const {
   return (this->at(this->player_x, this->player_y).type == Player);
 }
 
+int level_state::count_items() const {
+  int count = 0;
+  for (int y = 0; y < this->h; y++) {
+    for (int x = 0; x < this->w; x++) {
+      if (this->at(x, y).type == Item)
+        count++;
+      else if ((this->at(x, y).type == ItemDude) || (this->at(x, y).type == BlueBomb))
+        count += 9;
+    }
+  }
+  return count;
+}
+
+int level_state::count_items_supaplex() const {
+  int count = 0;
+  for (int y = 0; y < this->h; y++)
+    for (int x = 0; x < this->w; x++)
+      if (this->at(x, y).type == Item)
+        count++;
+  return count;
+}
+
 bool level_state::validate() const {
   // check that a Player cell exists
   for (int y = 0; y < this->h; y++)
@@ -533,6 +555,9 @@ static level_state import_supaplex_level(const supaplex_level& spl) {
       }
     }
   }
+
+  if (l.num_items_remaining == 0)
+    l.num_items_remaining = l.count_items_supaplex();
 
   return l;
 }
