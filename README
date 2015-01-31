@@ -20,6 +20,8 @@ Some notable differences from Supaplex's rules:
   bombs than you have collected), then you won't be able to finish the level.
 - After dropping a bomb, you can pick it up again before it explodes. This
   technique is required in some levels.
+- Gravity doesn't work. This makes some levels much easier. Enemy freezing,
+  however, also doesn't work.
 - Triggers disappear when used. (In Supaplex, the terminals remained solid.)
 - Both types of enemies move at the same speed.
 
