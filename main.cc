@@ -243,11 +243,9 @@ static void render_paused_screen(int window_w, int window_h,
     draw_text(0, -0.4, 1, 1, 1, 1, aspect_ratio, 0.01, true,
         "ENTER: PAUSE");
     draw_text(0, -0.6, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-        "SHIFT+ESC: RESTART LEVEL");
-    draw_text(0, -0.7, 1, 1, 1, 1, aspect_ratio, 0.01, true,
         "SHIFT+LEFT/RIGHT: CHANGE LEVEL");
-    draw_text(0, -0.8, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-        "ESC: EXIT");
+    draw_text(0, -0.7, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+        "ESC: RESTART LEVEL / EXIT");
   }
 }
 
@@ -283,7 +281,7 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
 
   if (action == GLFW_PRESS) {
     if (key == GLFW_KEY_ESCAPE) {
-      if (mods & GLFW_MOD_SHIFT)
+      if (phase == Playing)
         should_change_to_level = level_index;
       else
         glfwSetWindowShouldClose(window, 1);
