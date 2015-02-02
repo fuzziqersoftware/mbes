@@ -116,6 +116,7 @@ struct level_state {
   bool player_will_drop_bomb;
   bool player_did_win;
   float updates_per_second;
+  uint64_t frames_executed;
   vector<cell_state> cells;
   list<explosion_info> pending_explosions;
 

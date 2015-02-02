@@ -98,7 +98,7 @@ explosion_info::explosion_info(int x, int y, int size, int frames,
 level_state::level_state(int w, int h, int player_x, int player_y) : w(w), h(h),
     player_x(player_x), player_y(player_y), num_items_remaining(0),
     num_red_bombs(0), player_will_drop_bomb(false), player_did_win(false),
-    updates_per_second(20.0f), cells(w * h) {
+    updates_per_second(20.0f), frames_executed(0), cells(w * h) {
   for (int x = 0; x < this->w; x++) {
     this->at(x, 0) = cell_state(Block);
     this->at(x, this->h - 1) = cell_state(Block);
@@ -430,6 +430,8 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
   for (int y = 0; y < this->h; y++)
     for (int x = 0; x < this->w; x++)
       this->at(x, y).moved = false;
+
+  this->frames_executed++;
 
   return events_occurred;
 }

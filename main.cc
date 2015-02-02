@@ -174,12 +174,18 @@ static void render_level_state(const level_state& l, int window_w, int window_h)
   else if (l.num_items_remaining == 1)
     draw_text(-0.99, -0.9, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
         "1 ITEM REMAINING");
+  else if (l.num_items_remaining == -1)
+    draw_text(-0.99, -0.9, 0, 1, 0.5, 1, (float)window_w / window_h, 0.01, false,
+        "1 EXTRA ITEM");
+  else if (l.num_items_remaining < -1)
+    draw_text(-0.99, -0.9, 0, 1, 0.5, 1, (float)window_w / window_h, 0.01, false,
+        "%d EXTRA ITEMS", -l.num_items_remaining);
 
   if (l.num_red_bombs > 1)
-    draw_text(-0.99, -0.8, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
+    draw_text(-0.99, -0.8, 0, 1, 0.5, 1, (float)window_w / window_h, 0.01, false,
         "%d RED BOMBS", l.num_red_bombs);
   else if (l.num_red_bombs == 1)
-    draw_text(-0.99, -0.8, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
+    draw_text(-0.99, -0.8, 0, 1, 0.5, 1, (float)window_w / window_h, 0.01, false,
         "1 RED BOMB");
   else if (l.num_red_bombs == -1)
     draw_text(-0.99, -0.8, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
@@ -526,8 +532,10 @@ int main(int argc, char* argv[]) {
 
       if (debug_mode) {
         draw_text(-0.99, 0.97, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
-            "AT %d, %d - CELL INDEX %d - FILE OFFSET %X", game.player_x, game.player_y,
-            game.player_y * 60 + game.player_x, 1536 * level_index + game.player_y * 60 + game.player_x);
+            "AT %d, %d - CELL INDEX %d - FILE OFFSET %X - FRAME %llu",
+            game.player_x, game.player_y, game.player_y * 60 + game.player_x,
+            1536 * level_index + game.player_y * 60 + game.player_x,
+            game.frames_executed);
       }
 
       if (phase == Paused)
