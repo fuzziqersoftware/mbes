@@ -33,6 +33,7 @@ haven't yet completed. To reset the completion states for all levels, delete
 
 Building:
 - Install Xcode (or some other variant of GCC).
+- Install GLFW (http://www.glfw.org/).
 - Put a levels.dat file in the same directory as the source. (You can get a
   levels.dat file from the Supaplex site, linked above. Rename it to lowercase.)
 - Run `make`. This will create Move Blocks and Eat Stuff.app.
