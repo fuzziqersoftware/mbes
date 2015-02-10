@@ -128,7 +128,7 @@ struct level_state {
   bool player_is_alive() const;
   bool validate() const;
   int count_items() const;
-  int count_items_supaplex() const;
+  int count_cells_of_type(cell_type c) const;
 
   void player_drop_bomb();
   uint64_t exec_frame(enum player_impulse impulse);

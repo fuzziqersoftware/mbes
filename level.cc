@@ -159,11 +159,11 @@ int level_state::count_items() const {
   return count;
 }
 
-int level_state::count_items_supaplex() const {
+int level_state::count_cells_of_type(cell_type c) const {
   int count = 0;
   for (int y = 0; y < this->h; y++)
     for (int x = 0; x < this->w; x++)
-      if (this->at(x, y).type == Item)
+      if (this->at(x, y).type == c)
         count++;
   return count;
 }
@@ -426,6 +426,13 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
     }
   }
 
+  // if there aren't enough red bombs for you to win, then you lose!
+  if (events_occurred & Exploded) {
+    if (-this->num_red_bombs > this->count_cells_of_type(RedBomb)) {
+      this->at(this->player_x, this->player_y) = cell_state(Empty, 0);
+    }
+  }
+
   // finally, clear all the moved flags for the next frame
   for (int y = 0; y < this->h; y++)
     for (int x = 0; x < this->w; x++)
@@ -559,7 +566,7 @@ static level_state import_supaplex_level(const supaplex_level& spl) {
   }
 
   if (l.num_items_remaining == 0)
-    l.num_items_remaining = l.count_items_supaplex();
+    l.num_items_remaining = l.count_cells_of_type(Item);
 
   return l;
 }
