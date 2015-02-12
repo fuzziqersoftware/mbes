@@ -37,7 +37,6 @@ const char* al_err_str(ALenum err) {
 
 void init_al() {
   const char *defname = alcGetString(NULL, ALC_DEFAULT_DEVICE_SPECIFIER);
-  fprintf(stderr, "note: default audio device is %s\n", defname);
 
   ALCdevice* dev = alcOpenDevice(defname);
   ALCcontext* ctx = alcCreateContext(dev, NULL);
