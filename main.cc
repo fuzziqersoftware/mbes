@@ -23,6 +23,33 @@ using namespace std;
 
 
 
+const vector<pair<cell_state, const char*>> editor_available_cells({
+  make_pair(cell_state(Empty, 1),          "EMPTY"),
+  make_pair(cell_state(Circuit),           "CIRCUIT"),
+  make_pair(cell_state(Rock),              "ROCK"),
+  make_pair(cell_state(Exit),              "EXIT"),
+  make_pair(cell_state(Player),            "PLAYER"),
+  make_pair(cell_state(Item),              "ITEM"),
+  make_pair(cell_state(Block),             "BLOCK"),
+  make_pair(cell_state(RoundBlock),        "ROUND BLOCK"),
+  make_pair(cell_state(RedBomb),           "RED BOMB"),
+  make_pair(cell_state(YellowBomb),        "YELLOW BOMB"),
+  make_pair(cell_state(GreenBomb),         "GREEN BOMB"),
+  make_pair(cell_state(BlueBomb),          "BLUE BOMB"),
+  make_pair(cell_state(YellowBombTrigger), "YELLOW TRIGGER"),
+  make_pair(cell_state(ItemDude),          "ITEM DUDE"),
+  make_pair(cell_state(BombDude),          "BOMB DUDE"),
+  make_pair(cell_state(LeftPortal),        "LEFT PORTAL"),
+  make_pair(cell_state(RightPortal),       "RIGHT PORTAL"),
+  make_pair(cell_state(UpPortal),          "UP PORTAL"),
+  make_pair(cell_state(DownPortal),        "DOWN PORTAL"),
+  make_pair(cell_state(HorizontalPortal),  "HORIZONTAL PORTAL"),
+  make_pair(cell_state(VerticalPortal),    "VERTICAL PORTAL"),
+  make_pair(cell_state(Portal),            "PORTAL"),
+});
+
+
+
 static void render_stripe_animation(int window_w, int window_h, int stripe_width,
     float br, float bg, float bb, float ba, float sr, float sg, float sb,
     float sa) {
@@ -50,60 +77,60 @@ static void render_stripe_animation(int window_w, int window_h, int stripe_width
 
 
 static void render_cell_quads(const cell_state& cell, int x, int y, int l_w,
-    int l_h) {
+    int l_h, float alpha = 1.0f) {
   bool draw_center = false;
   switch (cell.type) {
     case Empty:
-      glColor4f(0.0, 0.0, (float)cell.param / 256, 1.0);
+      glColor4f(0.0, 0.0, (float)cell.param / 256, alpha);
       break;
     case Circuit:
-      glColor4f(0.0, 0.8, 0.0, 1.0);
+      glColor4f(0.0, 0.8, 0.0, alpha);
       break;
     case Rock:
-      glColor4f(0.6, 0.6, 0.6, 1.0);
+      glColor4f(0.6, 0.6, 0.6, alpha);
       break;
     case Exit:
-      glColor4f(0.5, 1.0, 0.0, 1.0);
+      glColor4f(0.5, 1.0, 0.0, alpha);
       break;
     case Player:
-      glColor4f(1.0, 0.0, 0.0, 1.0);
+      glColor4f(1.0, 0.0, 0.0, alpha);
       break;
     case Item:
-      glColor4f(1.0, 0.0, 1.0, 1.0);
+      glColor4f(1.0, 0.0, 1.0, alpha);
       break;
     case Block:
-      glColor4f(1.0, 1.0, 1.0, 1.0);
+      glColor4f(1.0, 1.0, 1.0, alpha);
       break;
     case RoundBlock:
-      glColor4f(0.9, 0.9, 1.0, 1.0);
+      glColor4f(0.9, 0.9, 1.0, alpha);
       break;
     case BlueBomb:
-      glColor4f(0.0, 0.5, 1.0, 1.0);
+      glColor4f(0.0, 0.5, 1.0, alpha);
       draw_center = true;
       break;
     case GreenBomb:
-      glColor4f(0.0, 1.0, 0.0, 1.0);
+      glColor4f(0.0, 1.0, 0.0, alpha);
       draw_center = true;
       break;
     case YellowBomb:
-      glColor4f(0.8, 0.8, 0.0, 1.0);
+      glColor4f(0.8, 0.8, 0.0, alpha);
       draw_center = true;
       break;
     case RedBomb:
-      glColor4f(cell.param ? ((float)cell.param / 256) : 1.0, 0.0, 0.0, 1.0);
+      glColor4f(cell.param ? ((float)cell.param / 256) : 1.0, 0.0, 0.0, alpha);
       draw_center = true;
       break;
     case YellowBombTrigger:
-      glColor4f(0.8, 0.8, 0.0, 1.0);
+      glColor4f(0.8, 0.8, 0.0, alpha);
       break;
     case Explosion:
-      glColor4f((float)cell.param / 256, (float)cell.param / 512, 0.0, 1.0);
+      glColor4f((float)cell.param / 256, (float)cell.param / 512, 0.0, alpha);
       break;
     case ItemDude:
-      glColor4f(0.0, 0.5, 1.0, 1.0);
+      glColor4f(0.0, 0.5, 1.0, alpha);
       break;
     case BombDude:
-      glColor4f(1.0, 0.5, 0.0, 1.0);
+      glColor4f(1.0, 0.5, 0.0, alpha);
       break;
     case LeftPortal:
     case RightPortal:
@@ -112,7 +139,7 @@ static void render_cell_quads(const cell_state& cell, int x, int y, int l_w,
     case HorizontalPortal:
     case VerticalPortal:
     case Portal:
-      glColor4f(0.7, 0.0, 0.0, 1.0);
+      glColor4f(0.7, 0.0, 0.0, alpha);
       break;
   }
 
@@ -122,7 +149,7 @@ static void render_cell_quads(const cell_state& cell, int x, int y, int l_w,
   glVertex3f(to_window(x, l_w), -to_window(y + 1, l_h), 1);
 
   if (draw_center) {
-    glColor4f(1.0, 1.0, 1.0, 1.0);
+    glColor4f(1.0, 1.0, 1.0, alpha);
     glVertex3f(to_window(4 * x + 1, 4 * l_w), -to_window(4 * y + 1, 4 * l_h), 1);
     glVertex3f(to_window(4 * x + 3, 4 * l_w), -to_window(4 * y + 1, 4 * l_h), 1);
     glVertex3f(to_window(4 * x + 3, 4 * l_w), -to_window(4 * y + 3, 4 * l_h), 1);
@@ -152,6 +179,18 @@ static void render_cell_tris(const cell_state& cell, int x, int y, int l_w,
     glVertex3f(to_window(4 * x + 1, 4 * l_w), -to_window(4 * y + 3, 4 * l_h), 1);
     glVertex3f(to_window(4 * x + 3, 4 * l_w), -to_window(4 * y + 3, 4 * l_h), 1);
   }
+}
+
+static void render_cell(const cell_state& cell, int x, int y, int l_w, int l_h,
+    float alpha = 1.0) {
+  glBegin(GL_QUADS);
+  render_cell_quads(cell, x, y, l_w, l_h, alpha);
+  glEnd();
+
+  glBegin(GL_TRIANGLES);
+  glColor4f(1.0, 1.0, 1.0, alpha);
+  render_cell_tris(cell, x, y, l_w, l_h);
+  glEnd();
 }
 
 static void render_level_state(const level_state& l, int window_w, int window_h) {
@@ -193,13 +232,6 @@ static void render_level_state(const level_state& l, int window_w, int window_h)
   else if (l.num_red_bombs < -1)
     draw_text(-0.99, -0.8, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
         "%d RED BOMBS IN DEBT", -l.num_red_bombs);
-
-  if (l.updates_per_second != 20.0f) {
-    render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 0.1f);
-    //draw_text(-0.99, 0.97, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
-    //    "SLOW");
-  }
 }
 
 
@@ -257,10 +289,42 @@ static void render_paused_screen(int window_w, int window_h,
 
 
 
+static void render_palette(int sel_type, int l_w, int l_h, float alpha) {
+  glBegin(GL_QUADS);
+
+  glColor4f(1.0, 1.0, 1.0, alpha * 0.5);
+  glVertex3f(to_window(3, 2 * l_w), -to_window(3, 2 * l_h), 1);
+  glVertex3f(to_window(4 * editor_available_cells.size() + 3, 2 * l_w), -to_window(3, 2 * l_h), 1);
+  glVertex3f(to_window(4 * editor_available_cells.size() + 3, 2 * l_w), -to_window(7, 2 * l_h), 1);
+  glVertex3f(to_window(3, 2 * l_w), -to_window(7, 2 * l_h), 1);
+
+  glColor4f(1.0, 1.0, 1.0, alpha);
+  glVertex3f(to_window(4 * sel_type + 3, 2 * l_w), -to_window(3, 2 * l_h), 1);
+  glVertex3f(to_window(4 * sel_type + 7, 2 * l_w), -to_window(3, 2 * l_h), 1);
+  glVertex3f(to_window(4 * sel_type + 7, 2 * l_w), -to_window(7, 2 * l_h), 1);
+  glVertex3f(to_window(4 * sel_type + 3, 2 * l_w), -to_window(7, 2 * l_h), 1);
+
+  for (size_t x = 0; x < editor_available_cells.size(); x++)
+    render_cell_quads(editor_available_cells[x].first, 2 * x + 2, 2, l_w, l_h, alpha);
+  glEnd();
+
+  glBegin(GL_TRIANGLES);
+  glColor4f(1.0, 1.0, 1.0, alpha);
+  for (size_t x = 0; x < editor_available_cells.size(); x++)
+    render_cell_tris(editor_available_cells[x].first, 2 * x + 2, 2, l_w, l_h);
+  glEnd();
+
+  draw_text(0, 0.3, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
+      editor_available_cells[sel_type].second);
+}
+
+
+
 enum game_phase {
   Playing = 0,
   Paused,
   Instructions,
+  Editing,
 };
 
 level_state game;
@@ -272,10 +336,18 @@ int level_index = -1;
 int should_change_to_level = -1;
 bool debug_mode = false;
 
+int mouse_x, mouse_y;
+int palette_intensity = 0;
+int editor_highlight_x = 0, editor_highlight_y = 0;
+int editor_selected_cell_type;
+bool editor_drawing = false;
+
+
+
 static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
     int action, int mods) {
 
-  if (((action == GLFW_PRESS) || (action == GLFW_REPEAT)) && (mods & GLFW_MOD_SHIFT)) {
+  if ((phase != Editing) && ((action == GLFW_PRESS) || (action == GLFW_REPEAT)) && (mods & GLFW_MOD_SHIFT)) {
     if (key == GLFW_KEY_LEFT) {
       should_change_to_level = level_index - 1;
       return;
@@ -286,8 +358,14 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
   }
 
   if (action == GLFW_PRESS) {
-    if (key == GLFW_KEY_ESCAPE) {
-      if (phase == Playing)
+    if ((key == 'D') && (mods & GLFW_MOD_SHIFT)) {
+      phase = Editing;
+
+    } else if (key == GLFW_KEY_ESCAPE) {
+      if (phase == Editing) {
+        game.compute_player_coordinates();
+        phase = Paused;
+      } else if (phase == Playing)
         should_change_to_level = level_index;
       else
         glfwSetWindowShouldClose(window, 1);
@@ -297,7 +375,11 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
         debug_mode = !debug_mode;
 
       else {
-        if (phase == Playing)
+        if (phase == Editing) {
+          // TODO save level here
+          game.compute_player_coordinates();
+          phase = Paused;
+        } else if (phase == Playing)
           phase = Paused;
         else
           phase = Playing;
@@ -314,23 +396,23 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
 
     } else if (key == GLFW_KEY_LEFT) {
       current_impulse = Left;
-      phase = Playing;
+      phase = (phase == Editing ? Editing : Playing);
       player_did_lose = false;
     } else if (key == GLFW_KEY_RIGHT) {
       current_impulse = Right;
-      phase = Playing;
+      phase = (phase == Editing ? Editing : Playing);
       player_did_lose = false;
     } else if (key == GLFW_KEY_UP) {
       current_impulse = Up;
-      phase = Playing;
+      phase = (phase == Editing ? Editing : Playing);
       player_did_lose = false;
     } else if (key == GLFW_KEY_DOWN) {
       current_impulse = Down;
-      phase = Playing;
+      phase = (phase == Editing ? Editing : Playing);
       player_did_lose = false;
     } else if (key == GLFW_KEY_SPACE) {
       game.player_drop_bomb();
-      phase = Playing;
+      phase = (phase == Editing ? Editing : Playing);
       player_did_lose = false;
     }
   }
@@ -345,6 +427,57 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
       current_impulse = None;
   }
 }
+
+static void glfw_mouse_button_cb(GLFWwindow* window, int button, int action,
+    int mods) {
+  // non-editing phases only use the keyboard
+  if (phase != Editing)
+    return;
+
+  if (action == GLFW_RELEASE) {
+    editor_drawing = false;
+    return;
+  }
+
+  if (button == GLFW_MOUSE_BUTTON_RIGHT)
+    palette_intensity = 512;
+
+  if (!palette_intensity) {
+    editor_drawing = true;
+    game.at(editor_highlight_x, editor_highlight_y) =
+        editor_available_cells[editor_selected_cell_type].first;
+  }
+}
+
+static void glfw_mouse_move_cb(GLFWwindow* window, double x, double y) {
+  mouse_x = x;
+  mouse_y = y;
+
+  int window_w, window_h;
+  glfwGetFramebufferSize(window, &window_w, &window_h);
+  int cell_x = (mouse_x * game.w) / window_w;
+  int cell_y = (mouse_y * game.h) / window_h;
+
+  if ((cell_x < 0) || (cell_x > game.w) || (cell_y < 0) || (cell_y > game.h))
+    return;
+
+  editor_highlight_x = cell_x;
+  editor_highlight_y = cell_y;
+
+  if (palette_intensity && (cell_x >= 1) && (cell_x <= 2 * editor_available_cells.size() + 1) &&
+      (cell_y >= 1) && (cell_y <= 3))
+    palette_intensity = 512;
+
+  if (palette_intensity && ((cell_x & 1) == 0) && (cell_x >= 2) &&
+      (cell_x <= 2 * editor_available_cells.size() + 1) && (cell_y == 2)) {
+    editor_selected_cell_type = (cell_x - 2) / 2;
+
+  } else if (editor_drawing) {
+    game.at(editor_highlight_x, editor_highlight_y) =
+        editor_available_cells[editor_selected_cell_type].first;
+  }
+}
+
 
 static void glfw_focus_cb(GLFWwindow* window, int focused) {
   if ((focused == GL_FALSE) && (phase == Playing)) {
@@ -438,6 +571,8 @@ int main(int argc, char* argv[]) {
 
   glfwSetFramebufferSizeCallback(window, glfw_resize_cb);
   glfwSetKeyCallback(window, glfw_key_cb);
+  glfwSetMouseButtonCallback(window, glfw_mouse_button_cb);
+  glfwSetCursorPosCallback(window, glfw_mouse_move_cb);
   glfwSetWindowFocusCallback(window, glfw_focus_cb);
 
   glfwMakeContextCurrent(window);
@@ -472,6 +607,28 @@ int main(int argc, char* argv[]) {
           "LEVEL IS CORRUPT");
       draw_text(0, 0.0, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
           "ESC: EXIT");
+
+    } else if (phase == Editing) {
+      render_level_state(game, window_w, window_h);
+      render_cell(editor_available_cells[editor_selected_cell_type].first,
+          editor_highlight_x, editor_highlight_y, game.w, game.h);
+      if (palette_intensity) {
+        float alpha_factor = ((palette_intensity > 256) ? 1.0f : ((float)palette_intensity / 256));
+        render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f,
+            0.8f * alpha_factor, 0.0f, 0.0f, 0.0f, 0.1f * alpha_factor);
+        render_palette(editor_selected_cell_type, game.w, game.h, alpha_factor);
+      }
+      draw_text(-0.99, 0.97, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
+            "EDITING LEVEL %d", level_index);
+
+      uint64_t usec_per_update = 1000000.0 / game.updates_per_second;
+      uint64_t now_time = now();
+      uint64_t update_diff = now_time - last_update_time;
+      if (update_diff >= usec_per_update) {
+        if (palette_intensity > 0)
+          palette_intensity -= 16;
+        last_update_time = now_time;
+      }
 
     } else {
 
@@ -527,8 +684,12 @@ int main(int argc, char* argv[]) {
         }
       }
 
-      if (!game.player_did_win)
+      if (!game.player_did_win) {
         render_level_state(game, window_w, window_h);
+        if (game.updates_per_second != 20.0f)
+          render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f,
+              0.0f, 0.0f, 0.0f, 0.0f, 0.1f);
+      }
 
       if (debug_mode) {
         draw_text(-0.99, 0.97, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,

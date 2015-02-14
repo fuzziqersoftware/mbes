@@ -571,6 +571,18 @@ static level_state import_supaplex_level(const supaplex_level& spl) {
   return l;
 }
 
+void level_state::compute_player_coordinates() {
+  for (int y = 0; y < this->h; y++) {
+    for (int x = 0; x < this->w; x++) {
+      if (this->at(x, y).type == Player) {
+        this->player_x = x;
+        this->player_y = y;
+        return;
+      }
+    }
+  }
+}
+
 vector<level_state> load_level_index(const char* filename) {
   FILE* f = fopen(filename, "rb");
   if (!f)
