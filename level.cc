@@ -232,6 +232,15 @@ int level_state::count_cells_of_type(cell_type c) const {
   return count;
 }
 
+int level_state::count_attenuated_space() const {
+  int count = 0;
+  for (int y = 0; y < this->h; y++)
+    for (int x = 0; x < this->w; x++)
+      if ((this->at(x, y).type == Empty) && (this->at(x, y).param > 0))
+        count++;
+  return count;
+}
+
 bool level_state::validate() const {
   // check that a Player cell exists
   for (int y = 0; y < this->h; y++)

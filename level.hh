@@ -140,6 +140,7 @@ struct level_state {
   bool validate() const;
   int count_items() const;
   int count_cells_of_type(cell_type c) const;
+  int count_attenuated_space() const;
   void compute_player_coordinates();
 
   void player_drop_bomb();

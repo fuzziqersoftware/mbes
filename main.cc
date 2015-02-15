@@ -237,13 +237,41 @@ static void render_level_state(const level_state& l, int window_w, int window_h)
 
 
 
+static void render_key_commands(float aspect_ratio) {
+  draw_text(0, -0.1, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+      "UP/DOWN/LEFT/RIGHT: MOVE");
+  draw_text(0, -0.2, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+      "SPACE: DROP BOMB");
+  draw_text(0, -0.3, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+      "TAB: TOGGLE SPEED");
+  draw_text(0, -0.4, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+      "ENTER: PAUSE");
+  draw_text(0, -0.6, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+      "SHIFT+LEFT/RIGHT: CHANGE LEVEL");
+  draw_text(0, -0.7, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+      "ESC: RESTART LEVEL / EXIT");
+}
+
+static void render_level_stats(const level_completion& lc, float aspect_ratio) {
+  draw_text(0, -0.2, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+      "BEST TIME: %llu", lc.frames);
+  draw_text(0, -0.3, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+      "BEST OVER-ACHIEVEMENT: %llu ITEMS", lc.extra_items);
+  draw_text(0, -0.4, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+      "MOST EXTRA BOMBS: %llu BOMBS", lc.extra_bombs);
+  draw_text(0, -0.5, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+      "MOST CLEARED SPACE: %llu CELLS", lc.cleared_space);
+  draw_text(0, -0.6, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+      "LEAST ATTENUATED SPACE: %llu CELLS", lc.attenuated_space);
+}
+
 static void render_paused_screen(int window_w, int window_h,
     const vector<level_completion>& completion, int level_index,
     bool player_did_win, bool player_did_lose) {
 
   size_t num_completed = 0;
   for (const auto& it : completion)
-    if (it == Completed)
+    if (it.state == Completed)
       num_completed++;
 
   render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f, 0.6f, 0.0f,
@@ -255,10 +283,14 @@ static void render_paused_screen(int window_w, int window_h,
   draw_text(0, 0.7, 1, 1, 1, 1, (float)window_w / window_h, 0.03, true,
       "MOVE BLOCKS AND EAT STUFF");
 
-  if (player_did_win)
+  if (player_did_win) {
     draw_text(0, 0.3, 1, 1, 1, 1, aspect_ratio, 0.02, true,
         "YOU WIN");
-  else {
+    draw_text(0, 0.1, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+        "YOU HAVE COMPLETED ALL %llu LEVELS!", completion.size());
+    // TODO render overall stats here
+
+  } else {
     if (player_did_lose)
       draw_text(0, 0.3, 1, 0, 0, 1, aspect_ratio, 0.02, true,
           "LEVEL %d - PRESS ENTER TO TRY AGAIN", level_index);
@@ -266,25 +298,21 @@ static void render_paused_screen(int window_w, int window_h,
       draw_text(0, 0.3, 1, 1, 1, 1, aspect_ratio, 0.02, true,
           "LEVEL %d - PRESS ENTER TO PLAY", level_index);
 
-    if (completion[level_index] == Completed)
+    if (num_completed == completion.size()) {
+      draw_text(0, 0.1, 0.5, 1, 0.5, 1, aspect_ratio, 0.01, true,
+          "YOU HAVE COMPLETED ALL %llu LEVELS!", completion.size());
+      render_level_stats(completion[level_index], aspect_ratio);
+
+    } else if (completion[level_index].state == Completed) {
       draw_text(0, 0.1, 0.5, 1, 0.5, 1, aspect_ratio, 0.01, true,
           "YOU HAVE ALREADY COMPLETED THIS LEVEL (%lu/%lu)", num_completed, completion.size());
-    else
+      render_level_stats(completion[level_index], aspect_ratio);
+
+    } else {
       draw_text(0, 0.1, 1, 1, 1, 1, aspect_ratio, 0.01, true,
           "YOU HAVE COMPLETED %lu OF %lu LEVELS", num_completed, completion.size());
-
-    draw_text(0, -0.1, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-        "UP/DOWN/LEFT/RIGHT: MOVE");
-    draw_text(0, -0.2, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-        "SPACE: DROP BOMB");
-    draw_text(0, -0.3, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-        "TAB: TOGGLE SPEED");
-    draw_text(0, -0.4, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-        "ENTER: PAUSE");
-    draw_text(0, -0.6, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-        "SHIFT+LEFT/RIGHT: CHANGE LEVEL");
-    draw_text(0, -0.7, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-        "ESC: RESTART LEVEL / EXIT");
+      render_key_commands(aspect_ratio);
+    }
   }
 }
 
@@ -338,7 +366,6 @@ bool should_reload_state = false;
 enum player_impulse current_impulse = None;
 int level_index = -1;
 int should_change_to_level = -1;
-bool debug_mode = false;
 
 int mouse_x, mouse_y;
 int palette_intensity = 0;
@@ -385,24 +412,19 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
         glfwSetWindowShouldClose(window, 1);
 
     } else if (key == GLFW_KEY_ENTER) {
-      if (mods & GLFW_MOD_SHIFT)
-        debug_mode = !debug_mode;
-
-      else {
-        if (phase == Editing) {
-          game.compute_player_coordinates();
-          if (!game.frames_executed) {
-            initial_state[level_index] = game;
-            // TODO: clear completion state for this level
-            save_levels(initial_state, levels_filename.c_str());
-          }
-          phase = Paused;
-        } else if (phase == Playing)
-          phase = Paused;
-        else
-          phase = Playing;
-        player_did_lose = false;
-      }
+      if (phase == Editing) {
+        game.compute_player_coordinates();
+        if (!game.frames_executed) {
+          initial_state[level_index] = game;
+          // TODO: clear completion state for this level
+          save_levels(initial_state, levels_filename.c_str());
+        }
+        phase = Paused;
+      } else if (phase == Playing)
+        phase = Paused;
+      else
+        phase = Playing;
+      player_did_lose = false;
 
     } else if (key == GLFW_KEY_TAB) {
       if (mods & GLFW_MOD_SHIFT)
@@ -558,7 +580,7 @@ int main(int argc, char* argv[]) {
 
   if (level_index < 0) {
     // start at the first non-completed level
-    for (level_index = 0; (completion[level_index] == Completed) &&
+    for (level_index = 0; (completion[level_index].state == Completed) &&
         (level_index < initial_state.size()); level_index++);
   }
 
@@ -644,10 +666,9 @@ int main(int argc, char* argv[]) {
       draw_text(-0.99, 0.97, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
             "EDITING LEVEL %d", level_index);
 
-      uint64_t usec_per_update = 1000000.0 / game.updates_per_second;
       uint64_t now_time = now();
       uint64_t update_diff = now_time - last_update_time;
-      if (update_diff >= usec_per_update) {
+      if (update_diff >= (1000000.0 / 20.0)) {
         if (palette_intensity > 0)
           palette_intensity -= 16;
         last_update_time = now_time;
@@ -663,13 +684,38 @@ int main(int argc, char* argv[]) {
       } else if (game.player_did_win) {
         phase = Paused;
         player_did_lose = false;
-        completion[level_index] = Completed;
+
+        // combine level stats
+        level_completion& c = completion[level_index];
+        c.state = Completed;
+        if (game.frames_executed < c.frames)
+          c.frames = game.frames_executed;
+        if (-game.num_items_remaining > c.extra_items)
+          c.extra_items = -game.num_items_remaining;
+        if (game.num_red_bombs > c.extra_bombs)
+          c.extra_bombs = game.num_red_bombs;
+        uint64_t cleared_space = game.count_cells_of_type(Empty);
+        if (cleared_space > c.cleared_space)
+          c.cleared_space = cleared_space;
+        uint64_t attenuated_space = game.count_attenuated_space();
+        if (attenuated_space < c.attenuated_space)
+          c.attenuated_space = attenuated_space;
+
+        int next_level_index;
         if (level_index < initial_state.size() - 1) {
-          level_index++;
+          next_level_index = level_index + 1;
+        } else {
+          // if you completed the last level, go to the first incomplete level
+          for (next_level_index = 0; (completion[next_level_index].state == Completed) &&
+              (next_level_index < initial_state.size()); next_level_index++);
+        }
+
+        if (next_level_index < initial_state.size()) {
+          level_index = next_level_index;
           game = initial_state[level_index];
           level_is_valid = game.validate();
-          if (completion[level_index] != Completed)
-            completion[level_index] = Attempted;
+          if (completion[level_index].state != Completed)
+            completion[level_index].state = Attempted;
         }
         save_level_completion_state(level_completion_filename.c_str(), completion);
 
@@ -677,9 +723,10 @@ int main(int argc, char* argv[]) {
         phase = Paused;
         level_index = should_change_to_level;
         game = initial_state[level_index];
-        if (completion[level_index] != Completed)
-          completion[level_index] = Attempted;
-        save_level_completion_state(level_completion_filename.c_str(), completion);
+        if (completion[level_index].state == NotAttempted) {
+          completion[level_index].state = Attempted;
+          save_level_completion_state(level_completion_filename.c_str(), completion);
+        }
         should_change_to_level = -1;
         player_did_lose = false;
 
@@ -712,14 +759,6 @@ int main(int argc, char* argv[]) {
         if (game.updates_per_second != 20.0f)
           render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f,
               0.0f, 0.0f, 0.0f, 0.0f, 0.1f);
-      }
-
-      if (debug_mode) {
-        draw_text(-0.99, 0.97, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
-            "AT %d, %d - CELL INDEX %d - FILE OFFSET %X - FRAME %llu",
-            game.player_x, game.player_y, game.player_y * 60 + game.player_x,
-            1536 * level_index + game.player_y * 60 + game.player_x,
-            game.frames_executed);
       }
 
       if (phase == Paused)

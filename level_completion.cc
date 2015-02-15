@@ -7,6 +7,10 @@
 
 using namespace std;
 
+level_completion::level_completion() : state(NotAttempted),
+    frames(0xFFFFFFFFFFFFFFFF), extra_items(0), extra_bombs(0),
+    cleared_space(0), attenuated_space(0xFFFFFFFFFFFFFFFF) { }
+
 vector<level_completion> load_level_completion_state(const char* filename) {
   FILE* f = fopen(filename, "rb");
   if (!f)
