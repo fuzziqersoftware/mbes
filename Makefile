@@ -8,9 +8,10 @@ all: mbes.app/Contents/MacOS/mbes
 mbes: $(OBJECTS)
 	g++ $(LDFLAGS) -o mbes $^
 
-mbes.app/Contents/MacOS/mbes: mbes mbes.icns levels.dat
+mbes.app/Contents/MacOS/mbes: mbes mbes.icns levels.dat levels.mbl
 	./make_bundle.sh mbes "Move Blocks and Eat Stuff" com.fuzziqersoftware.mbes mbes
 	cp levels.dat mbes.app/Contents/Resources/
+	cp levels.mbl mbes.app/Contents/Resources/
 	rm -rf "Move Blocks and Eat Stuff.app"
 	cp -r mbes.app "Move Blocks and Eat Stuff.app"
 

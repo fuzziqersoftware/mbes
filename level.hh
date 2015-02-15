@@ -73,8 +73,11 @@ enum events_mask {
 
 struct cell_state {
   cell_type type;
-  int param;
+  int32_t param;
   bool moved;
+
+  void read(FILE*);
+  void write(FILE*) const;
 
   cell_state();
   cell_state(cell_type type, int param = 0, bool moved = false);
@@ -96,31 +99,39 @@ struct cell_state {
 };
 
 struct explosion_info {
-  int x;
-  int y;
-  int size;
-  int frames; // how many more frames before it occurs
+  int32_t x;
+  int32_t y;
+  int32_t size;
+  int32_t frames; // how many more frames before it occurs
   explosion_type type;
 
   explosion_info(int x, int y, int size = 1, int frames = 0,
       explosion_type type = NormalExplosion);
+
+  void read(FILE*);
+  void write(FILE*) const;
 };
 
 struct level_state {
-  int w;
-  int h;
-  int player_x;
-  int player_y;
-  int num_items_remaining;
-  int num_red_bombs;
-  bool player_will_drop_bomb;
-  bool player_did_win;
-  float updates_per_second;
+  uint32_t w;
+  uint32_t h;
+  int32_t player_x;
+  int32_t player_y;
+  int32_t num_items_remaining;
+  int32_t num_red_bombs;
   uint64_t frames_executed;
   vector<cell_state> cells;
   list<explosion_info> pending_explosions;
 
-  level_state(int w = 60, int h = 24, int player_x = 1, int player_y = 1);
+  float updates_per_second;
+  bool player_will_drop_bomb;
+  bool player_did_win;
+
+  level_state(uint32_t w = 60, uint32_t h = 24, int32_t player_x = 1,
+      int32_t player_y = 1);
+
+  void read(FILE*);
+  void write(FILE*) const;
 
   cell_state& at(int x, int y);
   const cell_state& at(int x, int y) const;
@@ -135,4 +146,6 @@ struct level_state {
   uint64_t exec_frame(enum player_impulse impulse);
 };
 
-vector<level_state> load_level_index(const char* filename);
+vector<level_state> import_supaplex_levels(const char* filename);
+vector<level_state> load_levels(const char* filename);
+void save_levels(const vector<level_state>& levels, const char* filename);

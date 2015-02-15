@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "level.hh"
+#include "util.hh"
 
 using namespace std;
 
@@ -87,18 +88,41 @@ bool cell_state::is_down_portal() const {
          (this->type == Portal);
 }
 
+void cell_state::read(FILE* f) {
+  fread_or_throw(f, &this->type, sizeof(this->type));
+  fread_or_throw(f, &this->param, sizeof(this->param));
+  // note: we don't read `moved` since it's only transient data
+  this->moved = false;
+}
+
+void cell_state::write(FILE* f) const {
+  fwrite_or_throw(f, &this->type, sizeof(this->type));
+  fwrite_or_throw(f, &this->param, sizeof(this->param));
+  // note: we don't write `moved` since it's only transient data
+}
+
 
 
 explosion_info::explosion_info(int x, int y, int size, int frames,
     explosion_type type) : x(x), y(y), size(size), frames(frames), type(type) {
 }
 
+void explosion_info::read(FILE* f) {
+  fread_or_throw(f, this, sizeof(*this));
+}
+
+void explosion_info::write(FILE* f) const {
+  fwrite_or_throw(f, this, sizeof(*this));
+}
 
 
-level_state::level_state(int w, int h, int player_x, int player_y) : w(w), h(h),
-    player_x(player_x), player_y(player_y), num_items_remaining(0),
-    num_red_bombs(0), player_will_drop_bomb(false), player_did_win(false),
-    updates_per_second(20.0f), frames_executed(0), cells(w * h) {
+
+level_state::level_state(uint32_t w, uint32_t h, int32_t player_x,
+    int32_t player_y) : w(w), h(h), player_x(player_x), player_y(player_y),
+    num_items_remaining(0), num_red_bombs(0), frames_executed(0), cells(w * h),
+    pending_explosions(), updates_per_second(20.0f),
+    player_will_drop_bomb(false), player_did_win(false) {
+
   for (int x = 0; x < this->w; x++) {
     this->at(x, 0) = cell_state(Block);
     this->at(x, this->h - 1) = cell_state(Block);
@@ -109,6 +133,46 @@ level_state::level_state(int w, int h, int player_x, int player_y) : w(w), h(h),
   }
   if ((this->player_x >= 0) && (this->player_y >= 0))
     this->at(this->player_x, this->player_y) = cell_state(Player);
+}
+
+void level_state::read(FILE* f) {
+  fread_or_throw(f, &this->w, sizeof(this->w));
+  fread_or_throw(f, &this->h, sizeof(this->h));
+  fread_or_throw(f, &this->player_x, sizeof(this->player_x));
+  fread_or_throw(f, &this->player_y, sizeof(this->player_y));
+  fread_or_throw(f, &this->num_items_remaining, sizeof(this->num_items_remaining));
+  fread_or_throw(f, &this->num_red_bombs, sizeof(this->num_red_bombs));
+  fread_or_throw(f, &this->frames_executed, sizeof(this->frames_executed));
+
+  this->cells.resize(this->w * this->h);
+  for (uint64_t x = 0; x < this->w * this->h; x++)
+    this->cells[x].read(f);
+
+  uint64_t num_explosions;
+  fread_or_throw(f, &num_explosions, sizeof(num_explosions));
+  this->pending_explosions.clear();
+  for (uint64_t x = 0; x < num_explosions; x++) {
+    this->pending_explosions.emplace_back(0, 0);
+    this->pending_explosions.back().read(f);
+  }
+}
+
+void level_state::write(FILE* f) const {
+  fwrite_or_throw(f, &this->w, sizeof(this->w));
+  fwrite_or_throw(f, &this->h, sizeof(this->h));
+  fwrite_or_throw(f, &this->player_x, sizeof(this->player_x));
+  fwrite_or_throw(f, &this->player_y, sizeof(this->player_y));
+  fwrite_or_throw(f, &this->num_items_remaining, sizeof(this->num_items_remaining));
+  fwrite_or_throw(f, &this->num_red_bombs, sizeof(this->num_red_bombs));
+  fwrite_or_throw(f, &this->frames_executed, sizeof(this->frames_executed));
+
+  for (uint64_t x = 0; x < this->w * this->h; x++)
+    this->cells[x].write(f);
+
+  uint64_t num_explosions = this->pending_explosions.size();
+  fwrite_or_throw(f, &num_explosions, sizeof(num_explosions));
+  for (const explosion_info& e : this->pending_explosions)
+    e.write(f);
 }
 
 cell_state& level_state::at(int x, int y) {
@@ -443,6 +507,18 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
   return events_occurred;
 }
 
+void level_state::compute_player_coordinates() {
+  for (int y = 0; y < this->h; y++) {
+    for (int x = 0; x < this->w; x++) {
+      if (this->at(x, y).type == Player) {
+        this->player_x = x;
+        this->player_y = y;
+        return;
+      }
+    }
+  }
+}
+
 
 
 struct supaplex_level {
@@ -509,23 +585,23 @@ static cell_state state_for_supaplex_cell(uint8_t contents) {
       return cell_state(BombDude, Up);
     case 0x18: // spark
       return cell_state(ItemDude, Up);
-    case 0x09: // portal right (TODO)
+    case 0x09: // portal right
     case 0x0D: // portal right special (TODO)
       return cell_state(RightPortal);
-    case 0x0A: // portal down (TODO)
+    case 0x0A: // portal down
     case 0x0E: // portal down special (TODO)
       return cell_state(DownPortal);
-    case 0x0B: // portal left (TODO)
+    case 0x0B: // portal left
     case 0x0F: // portal left special (TODO)
       return cell_state(LeftPortal);
-    case 0x0C: // portal up (TODO)
+    case 0x0C: // portal up
     case 0x10: // portal up special (TODO)
       return cell_state(UpPortal);
-    case 0x15: // portal vertical (TODO)
+    case 0x15: // portal vertical
       return cell_state(VerticalPortal);
-    case 0x16: // portal horizontal (TODO)
+    case 0x16: // portal horizontal
       return cell_state(HorizontalPortal);
-    case 0x17: // portal 4-way (TODO)
+    case 0x17: // portal 4-way
       return cell_state(Portal);
     default:
       return cell_state(Empty, 255);
@@ -571,19 +647,7 @@ static level_state import_supaplex_level(const supaplex_level& spl) {
   return l;
 }
 
-void level_state::compute_player_coordinates() {
-  for (int y = 0; y < this->h; y++) {
-    for (int x = 0; x < this->w; x++) {
-      if (this->at(x, y).type == Player) {
-        this->player_x = x;
-        this->player_y = y;
-        return;
-      }
-    }
-  }
-}
-
-vector<level_state> load_level_index(const char* filename) {
+vector<level_state> import_supaplex_levels(const char* filename) {
   FILE* f = fopen(filename, "rb");
   if (!f)
     throw runtime_error("file not found");
@@ -594,10 +658,49 @@ vector<level_state> load_level_index(const char* filename) {
   vector<level_state> all_levels;
   for (uint64_t x = 0; x < num; x++) {
     supaplex_level spl;
-    fread(&spl, 1, sizeof(spl), f);
+    fread_or_throw(f, &spl, sizeof(spl));
     all_levels.push_back(import_supaplex_level(spl));
   }
   fclose(f);
 
   return all_levels;
+}
+
+
+
+vector<level_state> load_levels(const char* filename) {
+  FILE* f = fopen(filename, "rb");
+  if (!f)
+    throw runtime_error("file not found");
+
+  uint64_t file_version;
+  fread_or_throw(f, &file_version, sizeof(file_version));
+  if (file_version != 0)
+    throw runtime_error("unsupported file version");
+
+  uint64_t num_levels;
+  fread_or_throw(f, &num_levels, sizeof(num_levels));
+
+  vector<level_state> all_levels(num_levels);
+  for (uint64_t x = 0; x < num_levels; x++) {
+    all_levels[x].read(f);
+  }
+  fclose(f);
+
+  return all_levels;
+}
+
+void save_levels(const vector<level_state>& levels, const char* filename) {
+  FILE* f = fopen(filename, "wb");
+  if (!f)
+    throw runtime_error("can\'t open file");
+
+  uint64_t file_version = 0;
+  uint64_t num_levels = levels.size();
+  fwrite_or_throw(f, &file_version, sizeof(file_version));
+  fwrite_or_throw(f, &num_levels, sizeof(num_levels));
+
+  for (const level_state& l : levels)
+    l.write(f);
+  fclose(f);
 }

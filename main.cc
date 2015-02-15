@@ -11,6 +11,7 @@
 
 #include <list>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 #include "audio.hh"
@@ -327,6 +328,9 @@ enum game_phase {
   Editing,
 };
 
+string levels_filename = "";
+string default_levels_filename = "";
+vector<level_state> initial_state;
 level_state game;
 game_phase phase = Paused;
 bool player_did_lose = false;
@@ -376,8 +380,11 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
 
       else {
         if (phase == Editing) {
-          // TODO save level here
           game.compute_player_coordinates();
+          if (!game.frames_executed) {
+            initial_state[level_index] = game;
+            save_levels(initial_state, levels_filename.c_str());
+          }
           phase = Paused;
         } else if (phase == Playing)
           phase = Paused;
@@ -500,7 +507,6 @@ int main(int argc, char* argv[]) {
   const char* level_filename = (argc > 1) ? argv[1] : NULL;
   level_index = (argc > 2) ? atoi(argv[2]) : -1;
 
-  char filename_buffer[MAXPATHLEN];
   if (!level_filename) {
     CFURLRef app_url = CFBundleCopyBundleURL(CFBundleGetMainBundle());
     CFStringRef path = CFURLCopyFileSystemPath(app_url, kCFURLPOSIXPathStyle);
@@ -509,28 +515,34 @@ int main(int argc, char* argv[]) {
     // if we're in an app bundle, look in Resources/ for levels; else look in
     // the executable directory
     size_t p_len = strlen(p);
-    if ((p_len >= 4) && !strcmp(p + p_len - 4, ".app"))
-      sprintf(filename_buffer, "%s/Contents/Resources/levels.dat", p);
-    else
-      sprintf(filename_buffer, "%s/levels.dat", p);
-    level_filename = filename_buffer;
+    if ((p_len >= 4) && !strcmp(p + p_len - 4, ".app")) {
+      default_levels_filename = string(p) + "/Contents/Resources/levels.dat";
+      levels_filename = string(p) + "/Contents/Resources/levels.mbl";
+    } else {
+      default_levels_filename = string(p) + "/levels.dat";
+      levels_filename = string(p) + "/levels.mbl";
+    }
 
     CFRelease(app_url);
     CFRelease(path);
   }
 
-  vector<level_state> initial_state;
   try {
-    initial_state = load_level_index(level_filename);
+    initial_state = load_levels(levels_filename.c_str());
   } catch (const runtime_error& e) {
-    fprintf(stderr, "can\'t load level index: %s\n", e.what());
-    return 1;
+    fprintf(stderr, "can\'t load level index %s: %s\n", levels_filename.c_str(), e.what());
+    try {
+      initial_state = import_supaplex_levels(default_levels_filename.c_str());
+    } catch (const runtime_error& e) {
+      fprintf(stderr, "can\'t load level index %s: %s\n", default_levels_filename.c_str(), e.what());
+      return 1;
+    }
   }
 
   struct passwd *pw = getpwuid(getuid());
-  const char *homedir = pw->pw_dir;
-  sprintf(filename_buffer, "%s/.mbes_completion", homedir);
-  vector<level_completion> completion = load_level_completion_state(filename_buffer);
+  string level_completion_filename = string(pw->pw_dir) + "/.mbes_completion";
+  vector<level_completion> completion = load_level_completion_state(
+      level_completion_filename.c_str());
   completion.resize(initial_state.size());
 
   if (level_index < 0) {
@@ -648,7 +660,7 @@ int main(int argc, char* argv[]) {
           if (completion[level_index] != Completed)
             completion[level_index] = Attempted;
         }
-        save_level_completion_state(filename_buffer, completion);
+        save_level_completion_state(level_completion_filename.c_str(), completion);
 
       } else if ((should_change_to_level >= 0) && (should_change_to_level < initial_state.size())) {
         phase = Paused;
@@ -656,7 +668,7 @@ int main(int argc, char* argv[]) {
         game = initial_state[level_index];
         if (completion[level_index] != Completed)
           completion[level_index] = Attempted;
-        save_level_completion_state(filename_buffer, completion);
+        save_level_completion_state(level_completion_filename.c_str(), completion);
         should_change_to_level = -1;
         player_did_lose = false;
 
