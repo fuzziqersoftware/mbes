@@ -38,8 +38,8 @@ const vector<pair<cell_state, const char*>> editor_available_cells({
   make_pair(cell_state(GreenBomb),         "GREEN BOMB"),
   make_pair(cell_state(BlueBomb),          "BLUE BOMB"),
   make_pair(cell_state(YellowBombTrigger), "YELLOW TRIGGER"),
-  make_pair(cell_state(ItemDude),          "ITEM DUDE"),
-  make_pair(cell_state(BombDude),          "BOMB DUDE"),
+  make_pair(cell_state(BombDude, Left),    "BOMB DUDE"),
+  make_pair(cell_state(ItemDude, Left),    "ITEM DUDE"),
   make_pair(cell_state(LeftPortal),        "LEFT PORTAL"),
   make_pair(cell_state(RightPortal),       "RIGHT PORTAL"),
   make_pair(cell_state(UpPortal),          "UP PORTAL"),
@@ -351,13 +351,23 @@ bool editor_drawing = false;
 static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
     int action, int mods) {
 
-  if ((phase != Editing) && ((action == GLFW_PRESS) || (action == GLFW_REPEAT)) && (mods & GLFW_MOD_SHIFT)) {
-    if (key == GLFW_KEY_LEFT) {
-      should_change_to_level = level_index - 1;
-      return;
-    } else if (key == GLFW_KEY_RIGHT) {
-      should_change_to_level = level_index + 1;
-      return;
+  if (((action == GLFW_PRESS) || (action == GLFW_REPEAT)) && (mods & GLFW_MOD_SHIFT)) {
+    if (phase != Editing) {
+      if (key == GLFW_KEY_LEFT) {
+        should_change_to_level = level_index - 1;
+        return;
+      } else if (key == GLFW_KEY_RIGHT) {
+        should_change_to_level = level_index + 1;
+        return;
+      }
+    } else {
+      if (key == GLFW_KEY_UP) {
+        game.num_items_remaining++;
+        return;
+      } else if (key == GLFW_KEY_DOWN) {
+        game.num_items_remaining--;
+        return;
+      }
     }
   }
 
@@ -383,6 +393,7 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
           game.compute_player_coordinates();
           if (!game.frames_executed) {
             initial_state[level_index] = game;
+            // TODO: clear completion state for this level
             save_levels(initial_state, levels_filename.c_str());
           }
           phase = Paused;
