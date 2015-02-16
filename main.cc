@@ -399,10 +399,13 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
   }
 
   if (action == GLFW_PRESS) {
-    if ((key == 'D') && (mods & GLFW_MOD_SHIFT)) {
+    if ((key == GLFW_KEY_D) && (mods & GLFW_MOD_SHIFT))
       phase = Editing;
 
-    } else if (key == GLFW_KEY_ESCAPE) {
+    else if ((key == GLFW_KEY_I) && (phase == Editing))
+      game.num_items_remaining = game.count_items();
+
+    else if (key == GLFW_KEY_ESCAPE) {
       if (phase == Editing) {
         game.compute_player_coordinates();
         phase = Paused;
