@@ -176,19 +176,11 @@ void level_state::write(FILE* f) const {
 }
 
 cell_state& level_state::at(int x, int y) {
-  if (x < 0 || x >= this->w)
-    throw out_of_range("x");
-  if (y < 0 || y >= this->h)
-    throw out_of_range("y");
-  return this->cells[y * this->w + x];
+  return this->cells[(y % this->h) * this->w + (x % this->w)];
 }
 
 const cell_state& level_state::at(int x, int y) const {
-  if (x < 0 || x >= this->w)
-    throw out_of_range("x");
-  if (y < 0 || y >= this->h)
-    throw out_of_range("y");
-  return this->cells[y * this->w + x];
+  return this->cells[(y % this->h) * this->w + (x % this->w)];
 }
 
 void level_state::move_cell(int x, int y, player_impulse dir) {
