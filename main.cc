@@ -248,7 +248,7 @@ static void render_level_state(const level_state& l, int window_w, int window_h)
 
 
 
-static void render_key_commands(float aspect_ratio) {
+static void render_key_commands(float aspect_ratio, bool should_play_sounds) {
   draw_text(0, -0.1, 1, 1, 1, 1, aspect_ratio, 0.01, true,
       "UP/DOWN/LEFT/RIGHT: MOVE");
   draw_text(0, -0.2, 1, 1, 1, 1, aspect_ratio, 0.01, true,
@@ -258,8 +258,10 @@ static void render_key_commands(float aspect_ratio) {
   draw_text(0, -0.4, 1, 1, 1, 1, aspect_ratio, 0.01, true,
       "ENTER: PAUSE");
   draw_text(0, -0.6, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-      "SHIFT+LEFT/RIGHT: CHANGE LEVEL");
+      should_play_sounds ? "SHIFT+S: DISABLE SOUND" : "SHIFT+S: ENABLE SOUND");
   draw_text(0, -0.7, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+      "SHIFT+LEFT/RIGHT: CHANGE LEVEL");
+  draw_text(0, -0.8, 1, 1, 1, 1, aspect_ratio, 0.01, true,
       "ESC: RESTART LEVEL / EXIT");
 }
 
@@ -278,7 +280,7 @@ static void render_level_stats(const level_completion& lc, float aspect_ratio) {
 
 static void render_paused_screen(int window_w, int window_h,
     const vector<level_completion>& completion, int level_index,
-    bool player_did_win, bool player_did_lose) {
+    bool player_did_win, bool player_did_lose, bool should_play_sounds) {
 
   size_t num_completed = 0;
   for (const auto& it : completion)
@@ -322,7 +324,7 @@ static void render_paused_screen(int window_w, int window_h,
     } else {
       draw_text(0, 0.1, 1, 1, 1, 1, aspect_ratio, 0.01, true,
           "YOU HAVE COMPLETED %lu OF %lu LEVELS", num_completed, completion.size());
-      render_key_commands(aspect_ratio);
+      render_key_commands(aspect_ratio, should_play_sounds);
     }
   }
 }
@@ -398,6 +400,7 @@ level_state game;
 game_phase phase = Paused;
 bool player_did_lose = false;
 bool should_reload_state = false;
+bool should_play_sounds = true;
 enum player_impulse current_impulse = None;
 int level_index = -1;
 int should_change_to_level = -1;
@@ -437,6 +440,9 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
     if ((key == GLFW_KEY_D) && (mods & GLFW_MOD_SHIFT)) {
       phase = Editing;
       editor_palette_intensity = 1024;
+
+    } else if ((key == GLFW_KEY_S) && (mods & GLFW_MOD_SHIFT)) {
+      should_play_sounds = !should_play_sounds;
 
     } else if ((key == GLFW_KEY_I) && (phase == Editing))
       game.num_items_remaining = game.count_items();
@@ -790,18 +796,20 @@ int main(int argc, char* argv[]) {
         if (update_diff >= usec_per_update) {
           if (phase == Playing) {
             uint64_t events = game.exec_frame(current_impulse);
-            if (events & (RedBombCollected | ItemCollected))
-              get_item_sound.play();
-            if (events & RedBombDropped)
-              drop_bomb_sound.play();
-            if (events & CircuitEaten)
-              circuit_eaten_sound.play();
-            if (events & (Exploded | ItemExploded))
-              explosion_sound.play();
-            if (events & ObjectLanded)
-              landing_sound.play();
-            if (events & ObjectPushed)
-              push_sound.play();
+            if (should_play_sounds) {
+              if (events & (RedBombCollected | ItemCollected))
+                get_item_sound.play();
+              if (events & RedBombDropped)
+                drop_bomb_sound.play();
+              if (events & CircuitEaten)
+                circuit_eaten_sound.play();
+              if (events & (Exploded | ItemExploded))
+                explosion_sound.play();
+              if (events & ObjectLanded)
+                landing_sound.play();
+              if (events & ObjectPushed)
+                push_sound.play();
+            }
           }
           last_update_time = now_time;
         }
@@ -816,7 +824,7 @@ int main(int argc, char* argv[]) {
 
       if (phase == Paused)
         render_paused_screen(window_w, window_h, completion, level_index,
-            game.player_did_win, player_did_lose);
+            game.player_did_win, player_did_lose, should_play_sounds);
     }
 
     glfwSwapBuffers(window);
