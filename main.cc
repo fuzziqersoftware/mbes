@@ -258,7 +258,7 @@ static void render_key_commands(float aspect_ratio, bool should_play_sounds) {
   draw_text(0, -0.4, 1, 1, 1, 1, aspect_ratio, 0.01, true,
       "ENTER: PAUSE");
   draw_text(0, -0.6, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-      should_play_sounds ? "SHIFT+S: DISABLE SOUND" : "SHIFT+S: ENABLE SOUND");
+      should_play_sounds ? "SHIFT+S: MUTE SOUND" : "SHIFT+S: UNMUTE SOUND");
   draw_text(0, -0.7, 1, 1, 1, 1, aspect_ratio, 0.01, true,
       "SHIFT+LEFT/RIGHT: CHANGE LEVEL");
   draw_text(0, -0.8, 1, 1, 1, 1, aspect_ratio, 0.01, true,
