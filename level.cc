@@ -491,13 +491,6 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
     }
   }
 
-  // if there aren't enough red bombs for you to win, then you lose!
-  if (events_occurred & Exploded) {
-    if (-this->num_red_bombs > this->count_cells_of_type(RedBomb)) {
-      this->at(this->player_x, this->player_y) = cell_state(Empty, 0);
-    }
-  }
-
   // finally, clear all the moved flags for the next frame
   for (int y = 0; y < this->h; y++)
     for (int x = 0; x < this->w; x++)
