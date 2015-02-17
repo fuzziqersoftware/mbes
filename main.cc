@@ -49,6 +49,17 @@ const vector<pair<cell_state, const char*>> editor_available_cells({
   make_pair(cell_state(Portal),            "PORTAL"),
 });
 
+static bool editor_cell_can_be_written(const level_state& l, uint32_t x,
+    uint32_t y) {
+  return (x > 0) && (x < l.w - 1) && (y > 0) && (y < l.h - 1);
+}
+
+static void editor_write_cell(level_state& l, uint32_t x, uint32_t y,
+    const cell_state& cell) {
+  if (editor_cell_can_be_written(l, x, y))
+    l.at(x, y) = cell;
+}
+
 
 
 static void render_stripe_animation(int window_w, int window_h, int stripe_width,
@@ -318,7 +329,8 @@ static void render_paused_screen(int window_w, int window_h,
 
 
 
-static void render_palette(int sel_type, int l_w, int l_h, float alpha) {
+static void render_palette(int sel_type, int l_w, int l_h, float alpha,
+    bool can_save) {
   glBegin(GL_QUADS);
 
   glColor4f(1.0, 1.0, 1.0, alpha * 0.5);
@@ -343,8 +355,31 @@ static void render_palette(int sel_type, int l_w, int l_h, float alpha) {
     render_cell_tris(editor_available_cells[x].first, 2 * x + 2, 2, l_w, l_h);
   glEnd();
 
-  draw_text(0, 0.3, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
+  draw_text(0, 0.6, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
       editor_available_cells[sel_type].second);
+
+  draw_text(0.0, 0.2, 1, 1, 1, alpha, (float)l_w / l_h, 0.02, true,
+      "MOVE BLOCKS AND DESIGN LEVELS");
+
+  draw_text(0, 0.0, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
+      "SPACE / RIGHT-CLICK: OPEN/CLOSE PALETTE");
+  draw_text(0, -0.1, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
+      "LEFT-CLICK: DRAW CELL (DRAG TO DRAW MULTIPLE)");
+  draw_text(0, -0.2, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
+      "SHIFT+UP/DOWN: CHANGE REQUIRED ITEM COUNT");
+  draw_text(0, -0.3, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
+      "SHIFT+I: AUTOMATICALLY COMPUTE REQUIRED ITEM COUNT");
+  if (can_save) {
+    draw_text(0, -0.4, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
+        "ESC: EXIT EDITOR; DON\'T SAVE CHANGES");
+    draw_text(0, -0.5, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
+        "ENTER: EXIT EDITOR AND SAVE CHANGES");
+  } else {
+    draw_text(0, -0.4, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
+        "ESC / ENTER: EXIT EDITOR; DON\'T SAVE CHANGES");
+    draw_text(0, -0.5, 1, 0, 0, alpha, (float)l_w / l_h, 0.01, true,
+        "CAN\'T SAVE A PARTIALLY-PLAYED LEVEL");
+  }
 }
 
 
@@ -368,7 +403,7 @@ int level_index = -1;
 int should_change_to_level = -1;
 
 int mouse_x, mouse_y;
-int palette_intensity = 0;
+int editor_palette_intensity = 0;
 int editor_highlight_x = 0, editor_highlight_y = 0;
 int editor_selected_cell_type;
 bool editor_drawing = false;
@@ -399,10 +434,11 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
   }
 
   if (action == GLFW_PRESS) {
-    if ((key == GLFW_KEY_D) && (mods & GLFW_MOD_SHIFT))
+    if ((key == GLFW_KEY_D) && (mods & GLFW_MOD_SHIFT)) {
       phase = Editing;
+      editor_palette_intensity = 1024;
 
-    else if ((key == GLFW_KEY_I) && (phase == Editing))
+    } else if ((key == GLFW_KEY_I) && (phase == Editing))
       game.num_items_remaining = game.count_items();
 
     else if (key == GLFW_KEY_ESCAPE) {
@@ -454,9 +490,16 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
       phase = (phase == Editing ? Editing : Playing);
       player_did_lose = false;
     } else if (key == GLFW_KEY_SPACE) {
-      game.player_drop_bomb();
-      phase = (phase == Editing ? Editing : Playing);
-      player_did_lose = false;
+      if (phase == Editing) {
+        if (editor_palette_intensity)
+          editor_palette_intensity = 0;
+        else
+          editor_palette_intensity = 512;
+      } else {
+        game.player_drop_bomb();
+        phase = Playing;
+        player_did_lose = false;
+      }
     }
   }
 
@@ -482,14 +525,19 @@ static void glfw_mouse_button_cb(GLFWwindow* window, int button, int action,
     return;
   }
 
-  if (button == GLFW_MOUSE_BUTTON_RIGHT)
-    palette_intensity = 512;
-
-  if (!palette_intensity) {
-    editor_drawing = true;
-    game.at(editor_highlight_x, editor_highlight_y) =
-        editor_available_cells[editor_selected_cell_type].first;
+  if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+    if (editor_palette_intensity)
+      editor_palette_intensity = 0;
+    else
+      editor_palette_intensity = 512;
   }
+
+  if (!editor_palette_intensity) {
+    editor_drawing = true;
+    editor_write_cell(game, editor_highlight_x, editor_highlight_y,
+        editor_available_cells[editor_selected_cell_type].first);
+  } else if (button == GLFW_MOUSE_BUTTON_LEFT)
+    editor_palette_intensity = 0;
 }
 
 static void glfw_mouse_move_cb(GLFWwindow* window, double x, double y) {
@@ -507,17 +555,17 @@ static void glfw_mouse_move_cb(GLFWwindow* window, double x, double y) {
   editor_highlight_x = cell_x;
   editor_highlight_y = cell_y;
 
-  if (palette_intensity && (cell_x >= 1) && (cell_x <= 2 * editor_available_cells.size() + 1) &&
+  if (editor_palette_intensity && (cell_x >= 1) && (cell_x <= 2 * editor_available_cells.size() + 1) &&
       (cell_y >= 1) && (cell_y <= 3))
-    palette_intensity = 512;
+    editor_palette_intensity = 512;
 
-  if (palette_intensity && ((cell_x & 1) == 0) && (cell_x >= 2) &&
+  if (editor_palette_intensity && ((cell_x & 1) == 0) && (cell_x >= 2) &&
       (cell_x <= 2 * editor_available_cells.size() + 1) && (cell_y == 2)) {
     editor_selected_cell_type = (cell_x - 2) / 2;
 
   } else if (editor_drawing) {
-    game.at(editor_highlight_x, editor_highlight_y) =
-        editor_available_cells[editor_selected_cell_type].first;
+    editor_write_cell(game, editor_highlight_x, editor_highlight_y,
+        editor_available_cells[editor_selected_cell_type].first);
   }
 }
 
@@ -658,13 +706,15 @@ int main(int argc, char* argv[]) {
 
     } else if (phase == Editing) {
       render_level_state(game, window_w, window_h);
-      render_cell(editor_available_cells[editor_selected_cell_type].first,
-          editor_highlight_x, editor_highlight_y, game.w, game.h);
-      if (palette_intensity) {
-        float alpha_factor = ((palette_intensity > 256) ? 1.0f : ((float)palette_intensity / 256));
+      if (editor_cell_can_be_written(game, editor_highlight_x, editor_highlight_y))
+        render_cell(editor_available_cells[editor_selected_cell_type].first,
+            editor_highlight_x, editor_highlight_y, game.w, game.h);
+      if (editor_palette_intensity) {
+        float alpha_factor = ((editor_palette_intensity > 256) ? 1.0f : ((float)editor_palette_intensity / 256));
         render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f,
             0.8f * alpha_factor, 0.0f, 0.0f, 0.0f, 0.1f * alpha_factor);
-        render_palette(editor_selected_cell_type, game.w, game.h, alpha_factor);
+        render_palette(editor_selected_cell_type, game.w, game.h, alpha_factor,
+            game.frames_executed == 0);
       }
       draw_text(-0.99, 0.97, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
             "EDITING LEVEL %d", level_index);
@@ -672,8 +722,8 @@ int main(int argc, char* argv[]) {
       uint64_t now_time = now();
       uint64_t update_diff = now_time - last_update_time;
       if (update_diff >= (1000000.0 / 20.0)) {
-        if (palette_intensity > 0)
-          palette_intensity -= 16;
+        if (editor_palette_intensity > 0)
+          editor_palette_intensity -= 16;
         last_update_time = now_time;
       }
 
