@@ -51,7 +51,9 @@ const vector<pair<cell_state, const char*>> editor_available_cells({
 
 static bool editor_cell_can_be_written(const level_state& l, uint32_t x,
     uint32_t y) {
-  return (x > 0) && (x < l.w - 1) && (y > 0) && (y < l.h - 1);
+  return true;
+  // uncomment to prevent edting border tiles
+  //return (x > 0) && (x < l.w - 1) && (y > 0) && (y < l.h - 1);
 }
 
 static void editor_write_cell(level_state& l, uint32_t x, uint32_t y,

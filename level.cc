@@ -176,11 +176,23 @@ void level_state::write(FILE* f) const {
 }
 
 cell_state& level_state::at(int x, int y) {
-  return this->cells[(y % this->h) * this->w + (x % this->w)];
+  int32_t effective_y = y % (int32_t)this->h;
+  int32_t effective_x = x % (int32_t)this->w;
+  while (effective_x < 0)
+    effective_x += this->w;
+  while (effective_y < 0)
+    effective_y += this->w;
+  return this->cells[effective_y * this->w + effective_x];
 }
 
 const cell_state& level_state::at(int x, int y) const {
-  return this->cells[(y % this->h) * this->w + (x % this->w)];
+  int32_t effective_y = y % (int32_t)this->h;
+  int32_t effective_x = x % (int32_t)this->w;
+  while (effective_x < 0)
+    effective_x += this->w;
+  while (effective_y < 0)
+    effective_y += this->w;
+  return this->cells[effective_y * this->w + effective_x];
 }
 
 void level_state::move_cell(int x, int y, player_impulse dir) {
