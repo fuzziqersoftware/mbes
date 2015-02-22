@@ -50,11 +50,13 @@ enum cell_type {
   HorizontalPortal,
   VerticalPortal,
   Portal,
+  GrayBomb,
 };
 
 enum explosion_type {
   NormalExplosion = 0,
   ItemExplosion,
+  RockExplosion,
 };
 
 enum events_mask {

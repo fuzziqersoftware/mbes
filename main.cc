@@ -37,6 +37,7 @@ const vector<pair<cell_state, const char*>> editor_available_cells({
   make_pair(cell_state(YellowBomb),        "YELLOW BOMB"),
   make_pair(cell_state(GreenBomb),         "GREEN BOMB"),
   make_pair(cell_state(BlueBomb),          "BLUE BOMB"),
+  make_pair(cell_state(GrayBomb),          "GRAY BOMB"),
   make_pair(cell_state(YellowBombTrigger), "YELLOW TRIGGER"),
   make_pair(cell_state(BombDude, Left),    "BOMB DUDE"),
   make_pair(cell_state(ItemDude, Left),    "ITEM DUDE"),
@@ -132,6 +133,10 @@ static void render_cell_quads(const cell_state& cell, int x, int y, int l_w,
       break;
     case RedBomb:
       glColor4f(cell.param ? ((float)cell.param / 256) : 1.0, 0.0, 0.0, alpha);
+      draw_center = true;
+      break;
+    case GrayBomb:
+      glColor4f(0.6, 0.6, 0.6, alpha);
       draw_center = true;
       break;
     case YellowBombTrigger:

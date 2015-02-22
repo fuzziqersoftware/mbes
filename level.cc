@@ -28,7 +28,8 @@ bool cell_state::is_round() const {
 
 bool cell_state::should_fall() const {
   return (this->type == Rock) || (this->type == Item) ||
-         (this->type == GreenBomb) || (this->type == BlueBomb);
+         (this->type == GreenBomb) || (this->type == BlueBomb) ||
+         (this->type == GrayBomb);
 }
 
 bool cell_state::destroyable() const {
@@ -38,7 +39,8 @@ bool cell_state::destroyable() const {
 bool cell_state::is_bomb() const {
   return (this->type == GreenBomb) || (this->type == RedBomb) ||
          (this->type == YellowBomb) || (this->type == BlueBomb) ||
-         (this->type == ItemDude) || (this->type == BombDude);
+         (this->type == GrayBomb) || (this->type == ItemDude) ||
+         (this->type == BombDude);
 }
 
 bool cell_state::is_volatile() const {
@@ -53,7 +55,8 @@ bool cell_state::is_edible() const {
 
 bool cell_state::is_pushable_horizontal() const {
   return (this->type == Rock) || (this->type == GreenBomb) ||
-         (this->type == BlueBomb) || (this->type == YellowBomb);
+         (this->type == BlueBomb) || (this->type == YellowBomb) ||
+         (this->type == GrayBomb);
 }
 
 bool cell_state::is_pushable_vertical() const {
@@ -65,7 +68,11 @@ bool cell_state::is_dude() const {
 }
 
 explosion_type cell_state::explosion_type() const {
-  return (this->type == ItemDude || this->type == BlueBomb) ? ItemExplosion : NormalExplosion;
+  if (this->type == ItemDude || this->type == BlueBomb)
+    return ItemExplosion;
+  if (this->type == GrayBomb)
+    return RockExplosion;
+  return NormalExplosion;
 }
 
 bool cell_state::is_left_portal() const {
@@ -300,7 +307,7 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
           this->at(x, y) = cell_state(Empty);
         } else if (this->at(x, y + 1).is_volatile() && (this->at(x, y).param == Falling)) {
           this->pending_explosions.emplace_back(x, y + 1, 1, 0, this->at(x, y + 1).explosion_type());
-        } else if ((this->at(x, y).type == GreenBomb || this->at(x, y).type == BlueBomb) && (this->at(x, y).param == Falling)) {
+        } else if ((this->at(x, y).type == GreenBomb || this->at(x, y).type == BlueBomb || this->at(x, y).type == GrayBomb) && (this->at(x, y).param == Falling)) {
           this->pending_explosions.emplace_back(x, y, 1, 2, this->at(x, y).explosion_type());
           this->at(x, y).param = Resting;
         } else {
@@ -379,11 +386,15 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
               explosion_type new_type = this->at(it->x + xx, it->y + yy).explosion_type();
               if (it->type == ItemExplosion)
                 new_type = ItemExplosion;
+              if (it->type == RockExplosion)
+                new_type = RockExplosion;
               new_explosions.emplace_back(it->x + xx, it->y + yy, 1, 5,
                   new_type);
             }
             if (it->type == ItemExplosion)
               this->at(it->x + xx, it->y + yy) = cell_state(Item);
+            else if (it->type == RockExplosion)
+              this->at(it->x + xx, it->y + yy) = cell_state(Rock);
             else
               this->at(it->x + xx, it->y + yy) = cell_state(Explosion, 255);
           }
