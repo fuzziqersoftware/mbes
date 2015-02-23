@@ -670,7 +670,14 @@ int main(int argc, char* argv[]) {
   }
   glfwSetErrorCallback(glfw_error_cb);
 
-  GLFWwindow* window = glfwCreateWindow(game.w * 24, game.h * 24,
+  // auto-size the window based on the primary monitor size
+  GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+  const GLFWvidmode* vidmode = glfwGetVideoMode(monitor);
+  int cell_size_w = (vidmode->width - 100) / game.w;
+  int cell_size_h = (vidmode->height - 100) / game.h;
+  int cell_size = (cell_size_w < cell_size_h) ? cell_size_w : cell_size_h;
+
+  GLFWwindow* window = glfwCreateWindow(game.w * cell_size, game.h * cell_size,
       "Move Blocks and Eat Stuff", NULL, NULL);
   if (!window) {
     glfwTerminate();
