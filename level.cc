@@ -183,23 +183,19 @@ void level_state::write(FILE* f) const {
 }
 
 cell_state& level_state::at(int x, int y) {
-  int32_t effective_y = y % (int32_t)this->h;
-  int32_t effective_x = x % (int32_t)this->w;
-  while (effective_x < 0)
-    effective_x += this->w;
-  while (effective_y < 0)
-    effective_y += this->w;
-  return this->cells[effective_y * this->w + effective_x];
+  while (x < 0)
+    x += this->w;
+  while (y < 0)
+    y += this->w;
+  return this->cells[(y % this->h) * this->w + (x % this->w)];
 }
 
 const cell_state& level_state::at(int x, int y) const {
-  int32_t effective_y = y % (int32_t)this->h;
-  int32_t effective_x = x % (int32_t)this->w;
-  while (effective_x < 0)
-    effective_x += this->w;
-  while (effective_y < 0)
-    effective_y += this->w;
-  return this->cells[effective_y * this->w + effective_x];
+  while (x < 0)
+    x += this->w;
+  while (y < 0)
+    y += this->w;
+  return this->cells[(y % this->h) * this->w + (x % this->w)];
 }
 
 void level_state::move_cell(int x, int y, player_impulse dir) {
@@ -271,8 +267,8 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
 
   uint64_t events_occurred = NoEvents;
 
-  for (int y = this->h - 1; y >= 0; y--) {
-    for (int x = 0; x < this->w; x++) {
+  for (int32_t y = this->h - 1; y >= 0; y--) {
+    for (int32_t x = 0; x < this->w; x++) {
       // rule #0: explosions disappear
       if (this->at(x, y).type == Explosion) {
         this->at(x, y).param -= 16;
