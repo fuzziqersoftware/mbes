@@ -458,7 +458,7 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
       if (phase == Editing) {
         game.compute_player_coordinates();
         phase = Paused;
-      } else if (phase == Playing)
+      } else if ((phase == Playing) || game.frames_executed)
         should_change_to_level = level_index;
       else
         glfwSetWindowShouldClose(window, 1);
