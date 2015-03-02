@@ -727,13 +727,7 @@ int main(int argc, char* argv[]) {
       draw_text(-0.99, 0.97, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
             "EDITING LEVEL %d", level_index);
 
-      uint64_t now_time = now();
-      uint64_t update_diff = now_time - last_update_time;
-      if (update_diff >= (1000000.0 / 20.0)) {
-        if (editor_palette_intensity > 0)
-          editor_palette_intensity -= 16;
-        last_update_time = now_time;
-      }
+      last_update_time = now();
 
     } else {
 
