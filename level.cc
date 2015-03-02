@@ -186,7 +186,7 @@ cell_state& level_state::at(int x, int y) {
   while (x < 0)
     x += this->w;
   while (y < 0)
-    y += this->w;
+    y += this->h;
   return this->cells[(y % this->h) * this->w + (x % this->w)];
 }
 
@@ -194,7 +194,7 @@ const cell_state& level_state::at(int x, int y) const {
   while (x < 0)
     x += this->w;
   while (y < 0)
-    y += this->w;
+    y += this->h;
   return this->cells[(y % this->h) * this->w + (x % this->w)];
 }
 
@@ -509,6 +509,12 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
       }
     }
   }
+  while (this->player_x < 0)
+    this->player_x += this->w;
+  while (this->player_y < 0)
+    this->player_y += this->h;
+  this->player_x %= this->w;
+  this->player_y %= this->h;
 
   // finally, clear all the moved flags for the next frame
   for (int y = 0; y < this->h; y++)
