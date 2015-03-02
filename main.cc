@@ -226,31 +226,19 @@ static void render_level_state(const level_state& l, int window_w, int window_h)
       render_cell_tris(l.at(x, y), x, y, l.w, l.h);
   glEnd();
 
-  if (l.num_items_remaining > 1)
+  if (l.num_items_remaining > 0)
     draw_text(-0.99, -0.9, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
-        "%d ITEMS REMAINING", l.num_items_remaining);
-  else if (l.num_items_remaining == 1)
-    draw_text(-0.99, -0.9, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
-        "1 ITEM REMAINING");
-  else if (l.num_items_remaining == -1)
+        "%d %s REMAINING", l.num_items_remaining, (l.num_items_remaining == 1) ? "ITEM" : "ITEMS");
+  else if (l.num_items_remaining < 0)
     draw_text(-0.99, -0.9, 0, 1, 0.5, 1, (float)window_w / window_h, 0.01, false,
-        "1 EXTRA ITEM");
-  else if (l.num_items_remaining < -1)
-    draw_text(-0.99, -0.9, 0, 1, 0.5, 1, (float)window_w / window_h, 0.01, false,
-        "%d EXTRA ITEMS", -l.num_items_remaining);
+        "%d EXTRA %s", -l.num_items_remaining, (l.num_items_remaining == -1) ? "ITEM" : "ITEMS");
 
-  if (l.num_red_bombs > 1)
+  if (l.num_red_bombs > 0)
     draw_text(-0.99, -0.8, 0, 1, 0.5, 1, (float)window_w / window_h, 0.01, false,
-        "%d RED BOMBS", l.num_red_bombs);
-  else if (l.num_red_bombs == 1)
-    draw_text(-0.99, -0.8, 0, 1, 0.5, 1, (float)window_w / window_h, 0.01, false,
-        "1 RED BOMB");
-  else if (l.num_red_bombs == -1)
+        "%d RED %s", l.num_red_bombs, (l.num_red_bombs == 1) ? "BOMB" : "BOMBS");
+  else if (l.num_red_bombs < 0)
     draw_text(-0.99, -0.8, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
-        "1 RED BOMB IN DEBT");
-  else if (l.num_red_bombs < -1)
-    draw_text(-0.99, -0.8, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
-        "%d RED BOMBS IN DEBT", -l.num_red_bombs);
+        "%d RED %s IN DEBT", -l.num_red_bombs, (l.num_red_bombs == -1) ? "BOMB" : "BOMBS");
 }
 
 
@@ -276,13 +264,13 @@ static void render_level_stats(const level_completion& lc, float aspect_ratio) {
   draw_text(0, -0.2, 1, 1, 1, 1, aspect_ratio, 0.01, true,
       "BEST TIME: %llu", lc.frames);
   draw_text(0, -0.3, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-      "BEST OVER-ACHIEVEMENT: %llu ITEMS", lc.extra_items);
+      "BEST OVER-ACHIEVEMENT: %llu %s", lc.extra_items, (lc.extra_items == 1) ? "ITEM" : "ITEMS");
   draw_text(0, -0.4, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-      "MOST EXTRA BOMBS: %llu BOMBS", lc.extra_bombs);
+      "MOST EXTRA BOMBS: %llu %s", lc.extra_bombs, (lc.extra_bombs == 1) ? "BOMB" : "BOMBS");
   draw_text(0, -0.5, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-      "MOST CLEARED SPACE: %llu CELLS", lc.cleared_space);
+      "MOST CLEARED SPACE: %llu %s", lc.cleared_space, (lc.cleared_space == 1) ? "CELL" : "CELLS");
   draw_text(0, -0.6, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-      "LEAST ATTENUATED SPACE: %llu CELLS", lc.attenuated_space);
+      "LEAST ATTENUATED SPACE: %llu %s", lc.attenuated_space, (lc.attenuated_space == 1) ? "CELL" : "CELLS");
 }
 
 static void render_paused_screen(int window_w, int window_h,
