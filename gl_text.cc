@@ -38,21 +38,20 @@ void draw_text(float x, float y, float r, float g, float b, float a,
   double total_size = 5 * cell_size + 4 * cell_division_size + char_space_size;
   double currentX = x, currentY = y;
   for (; *s; s++) {
-    if (*s < 0x20)
-      continue;
-
-    for (int y = 0; y < 7; y++) {
-      for (int x = 0; x < 5; x++) {
-        if (!font[*s - 0x20][y * 5 + x])
-          continue;
-        glVertex2f(currentX + ((cell_size + cell_division_size) * x) * char_size / aspect_ratio,
-                   currentY - ((cell_size + cell_division_size) * y) * char_size);
-        glVertex2f(currentX + ((cell_size + cell_division_size) * x + cell_size) * char_size / aspect_ratio,
-                   currentY - ((cell_size + cell_division_size) * y) * char_size);
-        glVertex2f(currentX + ((cell_size + cell_division_size) * x + cell_size) * char_size / aspect_ratio,
-                   currentY - ((cell_size + cell_division_size) * y + cell_size) * char_size);
-        glVertex2f(currentX + ((cell_size + cell_division_size) * x) * char_size / aspect_ratio,
-                   currentY - ((cell_size + cell_division_size) * y + cell_size) * char_size);
+    if ((unsigned char)*s > 0x20) {
+      for (int y = 0; y < 7; y++) {
+        for (int x = 0; x < 5; x++) {
+          if (!font[(unsigned char)*s - 0x20][y * 5 + x])
+            continue;
+          glVertex2f(currentX + ((cell_size + cell_division_size) * x) * char_size / aspect_ratio,
+                     currentY - ((cell_size + cell_division_size) * y) * char_size);
+          glVertex2f(currentX + ((cell_size + cell_division_size) * x + cell_size) * char_size / aspect_ratio,
+                     currentY - ((cell_size + cell_division_size) * y) * char_size);
+          glVertex2f(currentX + ((cell_size + cell_division_size) * x + cell_size) * char_size / aspect_ratio,
+                     currentY - ((cell_size + cell_division_size) * y + cell_size) * char_size);
+          glVertex2f(currentX + ((cell_size + cell_division_size) * x) * char_size / aspect_ratio,
+                     currentY - ((cell_size + cell_division_size) * y + cell_size) * char_size);
+        }
       }
     }
 

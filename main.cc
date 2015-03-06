@@ -244,14 +244,8 @@ static void render_level_state(const level_state& l, int window_w, int window_h)
 
 
 static void render_key_commands(float aspect_ratio, bool should_play_sounds) {
-  draw_text(0, -0.1, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-      "UP/DOWN/LEFT/RIGHT: MOVE");
-  draw_text(0, -0.2, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-      "SPACE: DROP BOMB");
-  draw_text(0, -0.3, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-      "TAB: TOGGLE SPEED");
-  draw_text(0, -0.4, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-      "ENTER: PAUSE");
+  draw_text(0, -0.5, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+      "SHIFT+I: INSTRUCTIONS");
   draw_text(0, -0.6, 1, 1, 1, 1, aspect_ratio, 0.01, true,
       should_play_sounds ? "SHIFT+S: MUTE SOUND" : "SHIFT+S: UNMUTE SOUND");
   draw_text(0, -0.7, 1, 1, 1, 1, aspect_ratio, 0.01, true,
@@ -324,6 +318,88 @@ static void render_paused_screen(int window_w, int window_h,
   }
 }
 
+static void render_instructions_page(int window_w, int window_h, int page_num) {
+
+  float aspect_ratio = (float)window_w / window_h;
+
+  draw_text(0, 0.9, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+      "INSTRUCTIONS (PAGE %d/3)",
+      page_num + 1);
+  draw_text(0, 0.8, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+      "LEFT/RIGHT ARROW KEYS: CHANGE PAGE; ESC: EXIT INSTRUCTIONS");
+
+  if (page_num == 0) {
+    draw_text(0,  0.6,   1,   1,   1, 1, aspect_ratio, 0.01, true, "YOU ARE THE \x80 RED BOX. LUCKY YOU!");
+    draw_text(0,  0.6,   1,   0,   0, 1, aspect_ratio, 0.01, true, "            \x80                    ");
+    draw_text(0,  0.5,   1,   1,   1, 1, aspect_ratio, 0.01, true, "YOUR GOAL IN EACH LEVEL IS TO COLLECT THE \x80 ITEMS, THEN GO TO THE \x80 EXIT.");
+    draw_text(0,  0.5,   1,   0,   1, 1, aspect_ratio, 0.01, true, "                                          \x80                              ");
+    draw_text(0,  0.5, 0.5,   1,   0, 1, aspect_ratio, 0.01, true, "                                                                  \x80      ");
+
+    draw_text(0,  0.4,   1,   1,   1, 1, aspect_ratio, 0.01, true, "ON SOME LEVELS THERE MAY BE EXTRA ITEMS THAT YOU DON\'T NEED TO COLLECT.");
+
+    draw_text(0,  0.2,   1,   1,   1, 1, aspect_ratio, 0.01, true, "WATCH OUT FOR FALLING \x80 ITEMS, \x80 ROCKS AND \x80 BOMBS.");
+    draw_text(0,  0.2,   1,   0,   1, 1, aspect_ratio, 0.01, true, "                      \x80                            ");
+    draw_text(0,  0.2, 0.6, 0.6, 0.6, 1, aspect_ratio, 0.01, true, "                               \x80                   ");
+    draw_text(0,  0.2,   0,   1,   0, 1, aspect_ratio, 0.01, true, "                                           \x81       ");
+    draw_text(0,  0.2,   1,   1,   1, 1, aspect_ratio, 0.01, true, "                                           \x82       ");
+    draw_text(0,  0.1,   1,   1,   1, 1, aspect_ratio, 0.01, true, "YOU LOSE IF ANYTHING FALLS ON YOU OR EXPLODES NEAR YOU.");
+    draw_text(0,  0.0,   1,   1,   1, 1, aspect_ratio, 0.01, true, "YOU CAN PUSH ROCKS AND BOMBS OUT OF THE WAY IF THERE'S EMPTY SPACE ON THE OTHER SIDE.");
+    draw_text(0, -0.1,   1,   1,   1, 1, aspect_ratio, 0.01, true, "IF STACKED, ROCKS AND ITEMS WILL ROLL OFF EACH OTHER TO FORM A NEAT PILE.");
+
+    draw_text(0, -0.3,   1,   1,   1, 1, aspect_ratio, 0.01, true, "KEYS WHEN PLAYING:");
+    draw_text(0, -0.4,   1,   1,   1, 1, aspect_ratio, 0.01, true, "ARROW KEYS: MOVE AROUND, PUSH OBJECTS             ");
+    draw_text(0, -0.5,   1,   1,   1, 1, aspect_ratio, 0.01, true, "     SPACE: DROP BOMB (APPEARS WHEN YOU MOVE AWAY)");
+    draw_text(0, -0.6,   1,   1,   1, 1, aspect_ratio, 0.01, true, "       TAB: TOGGLE SPEED (SLOW/FAST)              ");
+    draw_text(0, -0.7,   1,   1,   1, 1, aspect_ratio, 0.01, true, "     ENTER: PAUSE                                 ");
+    draw_text(0, -0.8,   1,   1,   1, 1, aspect_ratio, 0.01, true, "       ESC: RESTART LEVEL / EXIT                  ");
+
+  } else if (page_num == 1) {
+    draw_text(0,  0.6,   1,   1,   1, 1, aspect_ratio, 0.01, true, "SOME OBJECTS YOU MIGHT ENCOUNTER:");
+    draw_text(0,  0.4,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x80 CIRCUIT. IT\'S SOLID FOR EVERYTHING EXCEPT YOU - EAT THESE TO GET THEM OUT OF THE WAY.");
+    draw_text(0,  0.4,   0, 0.8,   0, 1, aspect_ratio, 0.01, true, "\x80                                                                                      ");
+    draw_text(0,  0.3,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x80 BLOCK. IT CAN\'T BE MOVED OR DESTROYED BY ANYTHING.                                   ");
+    draw_text(0,  0.2,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x80 ROUND BLOCK. ROCKS AND ITEMS WILL ROLL OFF OF IT. CAN BE DESTROYED BY EXPLOSIONS.    ");
+    draw_text(0,  0.2, 0.9, 0.9,   1, 1, aspect_ratio, 0.01, true, "\x80                                                                                      ");
+    draw_text(0,  0.1,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x80 RED BOMB. YOU CAN PICK THESE UP AND DROP THEM LATER.                                 ");
+    draw_text(0,  0.1,   1,   0,   0, 1, aspect_ratio, 0.01, true, "\x81                                                                                      ");
+    draw_text(0,  0.1,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x82                                                                                      ");
+    draw_text(0,  0.0,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x80 YELLOW BOMB. PUSH THESE AROUND, THEN TOUCH THE YELLOW TRIGGER TO SET THEM OFF.       ");
+    draw_text(0,  0.0, 0.8, 0.8,   0, 1, aspect_ratio, 0.01, true, "\x81                                                                                      ");
+    draw_text(0,  0.0,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x82                                                                                      ");
+    draw_text(0, -0.1,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x80 YELLOW TRIGGER. SETS OFF ALL YELLOW BOMBS AT ONCE.                                   ");
+    draw_text(0, -0.1, 0.8, 0.8,   0, 1, aspect_ratio, 0.01, true, "\x80                                                                                      ");
+    draw_text(0, -0.2,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x80 GREEN BOMB. EXPLODES WHEN IT LANDS AFTER FALLING, OR IF SOMETHING IS DROPPED ON IT.  ");
+    draw_text(0, -0.2,   0,   1,   0, 1, aspect_ratio, 0.01, true, "\x81                                                                                      ");
+    draw_text(0, -0.2,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x82                                                                                      ");
+    draw_text(0, -0.3,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x80 BOMB DUDE. IT MOVES BY ITSELF! NOT HARMFUL, BUT EXPLODES IF SOMETHING FALLS ON IT.   ");
+    draw_text(0, -0.3,   1, 0.5,   0, 1, aspect_ratio, 0.01, true, "\x80                                                                                      ");
+    draw_text(0, -0.4,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x80 ITEM DUDE. LIKE A BOMB DUDE, BUT CREATES NINE ITEMS WHEN YOU KILL IT!                ");
+    draw_text(0, -0.4,   0, 0.5,   1, 1, aspect_ratio, 0.01, true, "\x80                                                                                      ");
+    draw_text(0, -0.5,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x80 PORTAL. YOU CAN ONLY MOVE THROUGH THIS IN THE DIRECTION OF ITS ARROW(S).             ");
+    draw_text(0, -0.5, 0.7,   0,   0, 1, aspect_ratio, 0.01, true, "\x80                                                                                      ");
+    draw_text(0, -0.5,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x83                                                                                      ");
+    draw_text(0, -0.6,   1,   1,   1, 1, aspect_ratio, 0.01, true, "  THERE ALSO MUST BE EMPTY SPACE ON THE OTHER SIDE.                                    ");
+    draw_text(0, -0.8,   1,   1,   1, 1, aspect_ratio, 0.01, true, "THERE MAY BE OTHER OBJECTS NOT MENTIONED HERE. FIND OUT WHAT THEY DO FOR YOURSELF!");
+
+  } else if (page_num == 2) {
+    draw_text(0,  0.6,   1,   1,   1, 1, aspect_ratio, 0.01, true, "SOME TIPS:");
+    draw_text(0,  0.4,   1,   1,   1, 1, aspect_ratio, 0.01, true, "YOU CAN SAFELY MOVE INTO THE SPACE UNDER OBJECTS THAT NORMALLY WOULD FALL ON YOU - THEY");
+    draw_text(0,  0.3,   1,   1,   1, 1, aspect_ratio, 0.01, true, "WON\'T HURT YOU UNLESS THEY ACTUALLY FALL.");
+    draw_text(0,  0.1,   1,   1,   1, 1, aspect_ratio, 0.01, true, "DUDES DON\'T HURT YOU, BUT THEY DO TEND TO GET IN THE WAY.");
+    draw_text(0,  0.0,   1,   1,   1, 1, aspect_ratio, 0.01, true, "BE CAREFUL IN CONFINED SPACES WITH DUDES.");
+    draw_text(0, -0.2,   1,   1,   1, 1, aspect_ratio, 0.01, true, "YOU CAN USE RED BOMBS EVEN IF YOU HAVEN\'T PICKED ANY UP, BUT IF YOU'RE IN DEBT (HAVE USED");
+    draw_text(0, -0.3,   1,   1,   1, 1, aspect_ratio, 0.01, true, "MORE RED BOMBS THAN YOU\'VE COLLECTED), THEN YOU CAN\'T FINISH THE LEVEL.");
+    draw_text(0, -0.5,   1,   1,   1, 1, aspect_ratio, 0.01, true, "AFTER USING A RED BOMB, YOU CAN PICK IT UP AGAIN BEFORE IT EXPLODES. FOR EXAMPLE, YOU CAN");
+    draw_text(0, -0.6,   1,   1,   1, 1, aspect_ratio, 0.01, true, "USE A RED BOMB TO TEMPORARILY PREVENT OBJECTS FROM FALLING OR ROLLING.");
+    draw_text(0, -0.8,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x80 BLOCKS CAN\'T BE DESTROYED BY ANYTHING. IF YOU NEED ALL THE ITEMS FROM AN ITEM DUDE,");
+    draw_text(0, -0.9,   1,   1,   1, 1, aspect_ratio, 0.01, true, "DON\'T BLOW IT UP NEAR A BLOCK - YOU'LL LOSE AN ITEM THAT YOU NEED.");
+
+  } else {
+    draw_text(0, 0.7, 1, 0, 0, 1, aspect_ratio, 0.01, true,
+        "INVALID PAGE NUMBER: %d", page_num);
+  }
+}
+
 
 
 static void render_palette(int sel_type, int l_w, int l_h, float alpha,
@@ -365,7 +441,7 @@ static void render_palette(int sel_type, int l_w, int l_h, float alpha,
   draw_text(0, -0.2, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
       "SHIFT+UP/DOWN: CHANGE REQUIRED ITEM COUNT");
   draw_text(0, -0.3, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
-      "SHIFT+I: AUTOMATICALLY COMPUTE REQUIRED ITEM COUNT");
+      "I: AUTOMATICALLY COMPUTE REQUIRED ITEM COUNT");
   if (can_save) {
     draw_text(0, -0.4, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
         "ESC: EXIT EDITOR; DON\'T SAVE CHANGES");
@@ -399,6 +475,7 @@ bool should_play_sounds = true;
 enum player_impulse current_impulse = None;
 int level_index = -1;
 int should_change_to_level = -1;
+int current_instructions_page = 0;
 
 int mouse_x, mouse_y;
 int editor_palette_intensity = 0;
@@ -411,20 +488,30 @@ bool editor_drawing = false;
 static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
     int action, int mods) {
 
-  if (((action == GLFW_PRESS) || (action == GLFW_REPEAT)) && (mods & GLFW_MOD_SHIFT)) {
-    if (phase != Editing) {
-      if (key == GLFW_KEY_LEFT) {
+  if (((action == GLFW_PRESS) || (action == GLFW_REPEAT))) {
+    if (phase == Paused) {
+      if ((key == GLFW_KEY_LEFT) && (mods & GLFW_MOD_SHIFT)) {
         should_change_to_level = level_index - 1;
         return;
-      } else if (key == GLFW_KEY_RIGHT) {
+      } else if ((key == GLFW_KEY_RIGHT) && (mods & GLFW_MOD_SHIFT)) {
         should_change_to_level = level_index + 1;
         return;
       }
-    } else {
-      if (key == GLFW_KEY_UP) {
+    } else if (phase == Instructions) {
+      if (key == GLFW_KEY_LEFT) {
+        if (current_instructions_page > 0)
+          current_instructions_page--;
+        return;
+      } else if (key == GLFW_KEY_RIGHT) {
+        if (current_instructions_page < 2)
+          current_instructions_page++;
+        return;
+      }
+    } else if (phase == Editing) {
+      if ((key == GLFW_KEY_UP) && (mods & GLFW_MOD_SHIFT)) {
         game.num_items_remaining++;
         return;
-      } else if (key == GLFW_KEY_DOWN) {
+      } else if ((key == GLFW_KEY_DOWN) && (mods & GLFW_MOD_SHIFT)) {
         game.num_items_remaining--;
         return;
       }
@@ -436,6 +523,10 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
       phase = Editing;
       editor_palette_intensity = 1024;
 
+    } else if ((key == GLFW_KEY_I) && (mods & GLFW_MOD_SHIFT)) {
+      phase = Instructions;
+      current_instructions_page = 0;
+
     } else if ((key == GLFW_KEY_S) && (mods & GLFW_MOD_SHIFT)) {
       should_play_sounds = !should_play_sounds;
 
@@ -445,6 +536,8 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
     else if (key == GLFW_KEY_ESCAPE) {
       if (phase == Editing) {
         game.compute_player_coordinates();
+        phase = Paused;
+      } else if (phase == Instructions) {
         phase = Paused;
       } else if ((phase == Playing) || game.frames_executed)
         should_change_to_level = level_index;
@@ -474,23 +567,23 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
       else
         game.updates_per_second = 20.0f;
 
-    } else if (key == GLFW_KEY_LEFT) {
+    } else if ((key == GLFW_KEY_LEFT) && ((phase == Playing) || (phase == Paused))) {
       current_impulse = Left;
-      phase = (phase == Editing ? Editing : Playing);
+      phase = Playing;
       player_did_lose = false;
-    } else if (key == GLFW_KEY_RIGHT) {
+    } else if ((key == GLFW_KEY_RIGHT) && ((phase == Playing) || (phase == Paused))) {
       current_impulse = Right;
-      phase = (phase == Editing ? Editing : Playing);
+      phase = Playing;
       player_did_lose = false;
-    } else if (key == GLFW_KEY_UP) {
+    } else if ((key == GLFW_KEY_UP) && ((phase == Playing) || (phase == Paused))) {
       current_impulse = Up;
-      phase = (phase == Editing ? Editing : Playing);
+      phase = Playing;
       player_did_lose = false;
-    } else if (key == GLFW_KEY_DOWN) {
+    } else if ((key == GLFW_KEY_DOWN) && ((phase == Playing) || (phase == Paused))) {
       current_impulse = Down;
-      phase = (phase == Editing ? Editing : Playing);
+      phase = Playing;
       player_did_lose = false;
-    } else if (key == GLFW_KEY_SPACE) {
+    } else if ((key == GLFW_KEY_SPACE) && (phase != Instructions)) {
       if (phase == Editing) {
         if (editor_palette_intensity)
           editor_palette_intensity = 0;
@@ -665,6 +758,7 @@ int main(int argc, char* argv[]) {
   int cell_size_h = (vidmode->height - 100) / game.h;
   int cell_size = (cell_size_w < cell_size_h) ? cell_size_w : cell_size_h;
 
+  //glfwOpenWindowHint(GLFW_WINDOW_NO_RESIZE, GL_TRUE);
   GLFWwindow* window = glfwCreateWindow(game.w * cell_size, game.h * cell_size,
       "Move Blocks and Eat Stuff", NULL, NULL);
   if (!window) {
@@ -711,6 +805,12 @@ int main(int argc, char* argv[]) {
           "LEVEL IS CORRUPT");
       draw_text(0, 0.0, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
           "ESC: EXIT");
+
+    } else if (phase == Instructions) {
+      render_level_state(game, window_w, window_h);
+      render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f, 0.8f,
+          0.0f, 0.0f, 0.0f, 0.1f);
+      render_instructions_page(window_w, window_h, current_instructions_page);
 
     } else if (phase == Editing) {
       render_level_state(game, window_w, window_h);
