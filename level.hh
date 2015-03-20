@@ -51,6 +51,7 @@ enum cell_type {
   VerticalPortal,
   Portal,
   GrayBomb,
+  RockGenerator,
 };
 
 enum explosion_type {

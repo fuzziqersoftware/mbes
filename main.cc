@@ -41,6 +41,7 @@ const vector<pair<cell_state, const char*>> editor_available_cells({
   make_pair(cell_state(YellowBombTrigger), "YELLOW TRIGGER"),
   make_pair(cell_state(BombDude, Left),    "BOMB DUDE"),
   make_pair(cell_state(ItemDude, Left),    "ITEM DUDE"),
+  make_pair(cell_state(RockGenerator),     "ROCK GENERATOR"),
   make_pair(cell_state(LeftPortal),        "LEFT PORTAL"),
   make_pair(cell_state(RightPortal),       "RIGHT PORTAL"),
   make_pair(cell_state(UpPortal),          "UP PORTAL"),
@@ -94,6 +95,7 @@ static void render_stripe_animation(int window_w, int window_h, int stripe_width
 static void render_cell_quads(const cell_state& cell, int x, int y, int l_w,
     int l_h, float alpha = 1.0f) {
   bool draw_center = false;
+  float center_r = 1.0, center_g = 1.0, center_b = 1.0;
   switch (cell.type) {
     case Empty:
       glColor4f(0.0, 0.0, (float)cell.param / 256, alpha);
@@ -139,6 +141,13 @@ static void render_cell_quads(const cell_state& cell, int x, int y, int l_w,
       glColor4f(0.6, 0.6, 0.6, alpha);
       draw_center = true;
       break;
+    case RockGenerator:
+      glColor4f(0.6, 0.6, 0.6, alpha);
+      draw_center = true;
+      center_r = 0.0;
+      center_g = 0.0;
+      center_b = 0.0;
+      break;
     case YellowBombTrigger:
       glColor4f(0.8, 0.8, 0.0, alpha);
       break;
@@ -168,7 +177,7 @@ static void render_cell_quads(const cell_state& cell, int x, int y, int l_w,
   glVertex3f(to_window(x, l_w), -to_window(y + 1, l_h), 1);
 
   if (draw_center) {
-    glColor4f(1.0, 1.0, 1.0, alpha);
+    glColor4f(center_r, center_g, center_b, alpha);
     glVertex3f(to_window(4 * x + 1, 4 * l_w), -to_window(4 * y + 1, 4 * l_h), 1);
     glVertex3f(to_window(4 * x + 3, 4 * l_w), -to_window(4 * y + 1, 4 * l_h), 1);
     glVertex3f(to_window(4 * x + 3, 4 * l_w), -to_window(4 * y + 3, 4 * l_h), 1);
@@ -383,8 +392,8 @@ static void render_instructions_page(int window_w, int window_h, int page_num) {
 
   } else if (page_num == 2) {
     draw_text(0,  0.6,   1,   1,   1, 1, aspect_ratio, 0.01, true, "SOME TIPS:");
-    draw_text(0,  0.4,   1,   1,   1, 1, aspect_ratio, 0.01, true, "YOU CAN SAFELY MOVE INTO THE SPACE UNDER OBJECTS THAT NORMALLY WOULD FALL ON YOU - THEY");
-    draw_text(0,  0.3,   1,   1,   1, 1, aspect_ratio, 0.01, true, "WON\'T HURT YOU UNLESS THEY ACTUALLY FALL.");
+    draw_text(0,  0.4,   1,   1,   1, 1, aspect_ratio, 0.01, true, "SOME LEVELS REQUIRE YOU TO MOVE QUICKLY IN DIFFERENT DIRECTIONS. TRY SLOW MODE (PRESS TAB)");
+    draw_text(0,  0.3,   1,   1,   1, 1, aspect_ratio, 0.01, true, "IF IT\'S TOO DIFFICULT TO MANEUVER QUICKLY ENOUGH.");
     draw_text(0,  0.1,   1,   1,   1, 1, aspect_ratio, 0.01, true, "DUDES DON\'T HURT YOU, BUT THEY DO TEND TO GET IN THE WAY.");
     draw_text(0,  0.0,   1,   1,   1, 1, aspect_ratio, 0.01, true, "BE CAREFUL IN CONFINED SPACES WITH DUDES.");
     draw_text(0, -0.2,   1,   1,   1, 1, aspect_ratio, 0.01, true, "YOU CAN USE RED BOMBS EVEN IF YOU HAVEN\'T PICKED ANY UP, BUT IF YOU'RE IN DEBT (HAVE USED");

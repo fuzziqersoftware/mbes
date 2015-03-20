@@ -40,7 +40,7 @@ bool cell_state::is_bomb() const {
   return (this->type == GreenBomb) || (this->type == RedBomb) ||
          (this->type == YellowBomb) || (this->type == BlueBomb) ||
          (this->type == GrayBomb) || (this->type == ItemDude) ||
-         (this->type == BombDude);
+         (this->type == BombDude) || (this->type == RockGenerator);
 }
 
 bool cell_state::is_volatile() const {
@@ -361,6 +361,19 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
             this->move_cell(x, y, Down);
           else
             this->at(x, y).param = Left;
+        }
+      }
+
+      // rule #5: rock generators generate rocks periodically if there's space below them
+      if (this->at(x, y).type == RockGenerator) {
+        if (this->at(x, y + 1).type != Empty)
+          this->at(x, y).param = 0;
+        else {
+          if (this->at(x, y).param >= 16) {
+            this->at(x, y + 1) = cell_state(Rock);
+            this->at(x, y).param = 0;
+          } else
+            this->at(x, y).param++;
         }
       }
     }
