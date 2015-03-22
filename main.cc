@@ -388,10 +388,10 @@ static void render_instructions_page(int window_w, int window_h, int page_num) {
     draw_text(0, -0.5, 0.7,   0,   0, 1, aspect_ratio, 0.01, true, "\x80                                                                                      ");
     draw_text(0, -0.5,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x83                                                                                      ");
     draw_text(0, -0.6,   1,   1,   1, 1, aspect_ratio, 0.01, true, "  THERE ALSO MUST BE EMPTY SPACE ON THE OTHER SIDE.                                    ");
-    draw_text(0, -0.8,   1,   1,   1, 1, aspect_ratio, 0.01, true, "THERE MAY BE OTHER OBJECTS NOT MENTIONED HERE. FIND OUT WHAT THEY DO FOR YOURSELF!");
+    draw_text(0, -0.8,   1,   1,   1, 1, aspect_ratio, 0.01, true, "THERE MAY BE OTHER TYPES OF OBJECTS NOT MENTIONED HERE. STRANGE THINGS AWAIT...");
 
   } else if (page_num == 2) {
-    draw_text(0,  0.6,   1,   1,   1, 1, aspect_ratio, 0.01, true, "SOME TIPS:");
+    draw_text(0,  0.6,   1,   1,   1, 1, aspect_ratio, 0.01, true, "A FEW TIPS:");
     draw_text(0,  0.4,   1,   1,   1, 1, aspect_ratio, 0.01, true, "SOME LEVELS REQUIRE YOU TO MOVE QUICKLY IN DIFFERENT DIRECTIONS. TRY SLOW MODE (PRESS TAB)");
     draw_text(0,  0.3,   1,   1,   1, 1, aspect_ratio, 0.01, true, "IF IT\'S TOO DIFFICULT TO MANEUVER QUICKLY ENOUGH.");
     draw_text(0,  0.1,   1,   1,   1, 1, aspect_ratio, 0.01, true, "DUDES DON\'T HURT YOU, BUT THEY DO TEND TO GET IN THE WAY.");
