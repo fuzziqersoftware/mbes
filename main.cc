@@ -840,7 +840,7 @@ int main(int argc, char* argv[]) {
 
     } else {
 
-      if (!game.player_is_alive()) {
+      if (!game.player_is_alive() && (game.player_is_losing() == 1.0)) {
         phase = Paused;
         player_did_lose = true;
         game = initial_state[level_index];
@@ -925,6 +925,12 @@ int main(int argc, char* argv[]) {
         if (game.updates_per_second != 20.0f)
           render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f,
               0.0f, 0.0f, 0.0f, 0.0f, 0.1f);
+
+        double lose_overlay_intensity = game.player_is_losing();
+        if (lose_overlay_intensity != 0.0)
+          render_stripe_animation(window_w, window_h, 100,
+              1.0f, 0.0f, 0.0f, 0.6f * lose_overlay_intensity,
+              1.0f, 0.0f, 0.0f, 0.1f * lose_overlay_intensity);
       }
 
       if (phase == Paused)

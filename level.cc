@@ -126,7 +126,8 @@ void explosion_info::write(FILE* f) const {
 
 level_state::level_state(uint32_t w, uint32_t h, int32_t player_x,
     int32_t player_y) : w(w), h(h), player_x(player_x), player_y(player_y),
-    num_items_remaining(0), num_red_bombs(0), frames_executed(0), cells(w * h),
+    num_items_remaining(0), num_red_bombs(0), frames_executed(0),
+    player_lose_frame(0), player_lose_buffer(1), cells(w * h),
     pending_explosions(), updates_per_second(20.0f),
     player_will_drop_bomb(false), player_did_win(false) {
 
@@ -215,6 +216,20 @@ void level_state::move_cell(int x, int y, player_impulse dir) {
 
 bool level_state::player_is_alive() const {
   return (this->at(this->player_x, this->player_y).type == Player);
+}
+
+double level_state::player_is_losing() const {
+  if (this->player_is_alive())
+    return 0.0;
+  if (this->player_lose_frame > this->frames_executed)
+    return 0.0;
+
+  uint64_t lose_end_frame = this->player_lose_frame + this->player_lose_buffer * this->updates_per_second;
+  if (this->frames_executed >= lose_end_frame)
+    return 1.0;
+
+  uint64_t total_lose_frames = lose_end_frame - this->player_lose_frame;
+  return (double)(this->frames_executed - this->player_lose_frame) / total_lose_frames;
 }
 
 int level_state::count_items() const {
@@ -418,116 +433,121 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
   for (const auto& it : new_explosions)
     this->pending_explosions.push_back(it);
 
-  // rule #2: players can have impulses
-  cell_state* player_target_cell = NULL;
-  if (impulse == Up)
-    player_target_cell = &this->at(this->player_x, this->player_y - 1);
-  else if (impulse == Down)
-    player_target_cell = &this->at(this->player_x, this->player_y + 1);
-  else if (impulse == Left)
-    player_target_cell = &this->at(this->player_x - 1, this->player_y);
-  else if (impulse == Right)
-    player_target_cell = &this->at(this->player_x + 1, this->player_y);
+  // if the player is losing or has lost, don't let them move
+  if (this->player_is_alive()) {
+    cell_state* player_target_cell = NULL;
+    if (impulse == Up)
+      player_target_cell = &this->at(this->player_x, this->player_y - 1);
+    else if (impulse == Down)
+      player_target_cell = &this->at(this->player_x, this->player_y + 1);
+    else if (impulse == Left)
+      player_target_cell = &this->at(this->player_x - 1, this->player_y);
+    else if (impulse == Right)
+      player_target_cell = &this->at(this->player_x + 1, this->player_y);
 
-  if (player_target_cell) {
-    if (player_target_cell->type == Item) {
-      events_occurred |= ItemCollected;
-      this->num_items_remaining--;
-    }
-    if (player_target_cell->type == RedBomb) {
-      events_occurred |= RedBombCollected;
-      this->num_red_bombs++;
-    }
-    if ((player_target_cell->type == Exit) && (this->num_red_bombs >= 0) &&
-        (this->num_items_remaining <= 0)) {
-      events_occurred |= PlayerWon;
-      this->player_did_win = true;
-    }
-
-    // if the player is moving into a portal, put them on the other side of it
-    cell_state* portal_target_cell = NULL;
-    if ((impulse == Left) && player_target_cell->is_left_portal())
-      portal_target_cell = &this->at(this->player_x - 2, this->player_y);
-    else if ((impulse == Right) && player_target_cell->is_right_portal())
-      portal_target_cell = &this->at(this->player_x + 2, this->player_y);
-    else if ((impulse == Up) && player_target_cell->is_up_portal())
-      portal_target_cell = &this->at(this->player_x, this->player_y - 2);
-    else if ((impulse == Down) && player_target_cell->is_down_portal())
-      portal_target_cell = &this->at(this->player_x, this->player_y + 2);
-
-    if (portal_target_cell && portal_target_cell->type == Empty) {
-      *portal_target_cell = this->at(this->player_x, this->player_y);
-      if (this->player_will_drop_bomb) {
-        this->num_red_bombs--;
-        this->at(this->player_x, this->player_y) = cell_state(RedBomb, 1);
-        events_occurred |= RedBombDropped;
-      } else {
-        this->at(this->player_x, this->player_y) = cell_state(Empty);
+    if (player_target_cell) {
+      if (player_target_cell->type == Item) {
+        events_occurred |= ItemCollected;
+        this->num_items_remaining--;
       }
-      this->player_will_drop_bomb = false;
-
-      if (impulse == Left)
-        this->player_x -= 2;
-      else if (impulse == Right)
-        this->player_x += 2;
-      else if (impulse == Up)
-        this->player_y -= 2;
-      else if (impulse == Down)
-        this->player_y += 2;
-    } else {
-
-      // if the player is pushing something, move it out of the way first
-      cell_state* push_target_cell = NULL;
-      if ((impulse == Left) && player_target_cell->is_pushable_horizontal())
-        push_target_cell = &this->at(this->player_x - 2, this->player_y);
-      else if ((impulse == Right) && player_target_cell->is_pushable_horizontal())
-        push_target_cell = &this->at(this->player_x + 2, this->player_y);
-      else if ((impulse == Up) && player_target_cell->is_pushable_vertical())
-        push_target_cell = &this->at(this->player_x, this->player_y - 2);
-      else if ((impulse == Down) && player_target_cell->is_pushable_vertical())
-        push_target_cell = &this->at(this->player_x, this->player_y + 2);
-      if (push_target_cell && push_target_cell->type == Empty) {
-        events_occurred |= ObjectPushed;
-        *push_target_cell = *player_target_cell;
-        *player_target_cell = cell_state(Empty);
+      if (player_target_cell->type == RedBomb) {
+        events_occurred |= RedBombCollected;
+        this->num_red_bombs++;
+      }
+      if ((player_target_cell->type == Exit) && (this->num_red_bombs >= 0) &&
+          (this->num_items_remaining <= 0)) {
+        events_occurred |= PlayerWon;
+        this->player_did_win = true;
       }
 
-      if (player_target_cell->is_edible()) {
-        if (player_target_cell->type == YellowBombTrigger)
-          for (int yy = 0; yy < this->h; yy++)
-            for (int xx = 0; xx < this->w; xx++)
-              if (this->at(xx, yy).type == YellowBomb)
-                this->pending_explosions.emplace_back(xx, yy);
-        if (player_target_cell->type == Circuit)
-          events_occurred |= CircuitEaten;
+      // if the player is moving into a portal, put them on the other side of it
+      cell_state* portal_target_cell = NULL;
+      if ((impulse == Left) && player_target_cell->is_left_portal())
+        portal_target_cell = &this->at(this->player_x - 2, this->player_y);
+      else if ((impulse == Right) && player_target_cell->is_right_portal())
+        portal_target_cell = &this->at(this->player_x + 2, this->player_y);
+      else if ((impulse == Up) && player_target_cell->is_up_portal())
+        portal_target_cell = &this->at(this->player_x, this->player_y - 2);
+      else if ((impulse == Down) && player_target_cell->is_down_portal())
+        portal_target_cell = &this->at(this->player_x, this->player_y + 2);
 
-        *player_target_cell = this->at(this->player_x, this->player_y);
+      if (portal_target_cell && portal_target_cell->type == Empty) {
+        *portal_target_cell = this->at(this->player_x, this->player_y);
         if (this->player_will_drop_bomb) {
-          events_occurred |= RedBombDropped;
           this->num_red_bombs--;
           this->at(this->player_x, this->player_y) = cell_state(RedBomb, 1);
+          events_occurred |= RedBombDropped;
         } else {
           this->at(this->player_x, this->player_y) = cell_state(Empty);
         }
         this->player_will_drop_bomb = false;
 
-        if (impulse == Up)
-          this->player_y--;
-        else if (impulse == Down)
-          this->player_y++;
-        else if (impulse == Left)
-          this->player_x--;
+        if (impulse == Left)
+          this->player_x -= 2;
         else if (impulse == Right)
-          this->player_x++;
+          this->player_x += 2;
+        else if (impulse == Up)
+          this->player_y -= 2;
+        else if (impulse == Down)
+          this->player_y += 2;
+      } else {
+
+        // if the player is pushing something, move it out of the way first
+        cell_state* push_target_cell = NULL;
+        if ((impulse == Left) && player_target_cell->is_pushable_horizontal())
+          push_target_cell = &this->at(this->player_x - 2, this->player_y);
+        else if ((impulse == Right) && player_target_cell->is_pushable_horizontal())
+          push_target_cell = &this->at(this->player_x + 2, this->player_y);
+        else if ((impulse == Up) && player_target_cell->is_pushable_vertical())
+          push_target_cell = &this->at(this->player_x, this->player_y - 2);
+        else if ((impulse == Down) && player_target_cell->is_pushable_vertical())
+          push_target_cell = &this->at(this->player_x, this->player_y + 2);
+        if (push_target_cell && push_target_cell->type == Empty) {
+          events_occurred |= ObjectPushed;
+          *push_target_cell = *player_target_cell;
+          *player_target_cell = cell_state(Empty);
+        }
+
+        if (player_target_cell->is_edible()) {
+          if (player_target_cell->type == YellowBombTrigger)
+            for (int yy = 0; yy < this->h; yy++)
+              for (int xx = 0; xx < this->w; xx++)
+                if (this->at(xx, yy).type == YellowBomb)
+                  this->pending_explosions.emplace_back(xx, yy);
+          if (player_target_cell->type == Circuit)
+            events_occurred |= CircuitEaten;
+
+          *player_target_cell = this->at(this->player_x, this->player_y);
+          if (this->player_will_drop_bomb) {
+            events_occurred |= RedBombDropped;
+            this->num_red_bombs--;
+            this->at(this->player_x, this->player_y) = cell_state(RedBomb, 1);
+          } else {
+            this->at(this->player_x, this->player_y) = cell_state(Empty);
+          }
+          this->player_will_drop_bomb = false;
+
+          if (impulse == Up)
+            this->player_y--;
+          else if (impulse == Down)
+            this->player_y++;
+          else if (impulse == Left)
+            this->player_x--;
+          else if (impulse == Right)
+            this->player_x++;
+        }
       }
     }
-  }
-  while (this->player_x < 0)
-    this->player_x += this->w;
-  while (this->player_y < 0)
-    this->player_y += this->h;
-  this->player_x %= this->w;
-  this->player_y %= this->h;
+    while (this->player_x < 0)
+      this->player_x += this->w;
+    while (this->player_y < 0)
+      this->player_y += this->h;
+    this->player_x %= this->w;
+    this->player_y %= this->h;
+
+  // if the player has lost, update the loss frame if not already set
+  } else if (!this->player_lose_frame)
+    this->player_lose_frame = this->frames_executed;
 
   // finally, clear all the moved flags for the next frame
   for (int y = 0; y < this->h; y++)

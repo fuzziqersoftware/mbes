@@ -123,6 +123,8 @@ struct level_state {
   int32_t num_items_remaining;
   int32_t num_red_bombs;
   uint64_t frames_executed;
+  uint64_t player_lose_frame;
+  double player_lose_buffer;
   vector<cell_state> cells;
   list<explosion_info> pending_explosions;
 
@@ -140,6 +142,7 @@ struct level_state {
   const cell_state& at(int x, int y) const;
   void move_cell(int x, int y, player_impulse dir);
   bool player_is_alive() const;
+  double player_is_losing() const;
   bool validate() const;
   int count_items() const;
   int count_cells_of_type(cell_type c) const;
