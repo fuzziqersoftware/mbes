@@ -2,8 +2,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef MACOSX
 #include <OpenAL/al.h>
 #include <OpenAL/alc.h>
+#else
+#include <AL/al.h>
+#include <AL/alc.h>
+#endif
 
 void init_al();
 void exit_al();

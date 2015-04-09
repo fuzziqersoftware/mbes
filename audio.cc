@@ -3,9 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <OpenAL/al.h>
-#include <OpenAL/alc.h>
-
 #include "audio.hh"
 
 const char* al_err_str(ALenum err) {

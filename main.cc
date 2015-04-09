@@ -7,7 +7,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#ifdef MACOSX
 #include <CoreFoundation/CoreFoundation.h>
+#endif
+
 #include <GLFW/glfw3.h>
 
 #include <list>
@@ -696,6 +699,7 @@ int main(int argc, char* argv[]) {
   level_index = (argc > 2) ? atoi(argv[2]) : -1;
 
   if (!level_filename) {
+#ifdef MACOSX
     CFURLRef app_url = CFBundleCopyBundleURL(CFBundleGetMainBundle());
     CFStringRef path = CFURLCopyFileSystemPath(app_url, kCFURLPOSIXPathStyle);
     const char *p = CFStringGetCStringPtr(path, CFStringGetSystemEncoding());
@@ -713,6 +717,10 @@ int main(int argc, char* argv[]) {
 
     CFRelease(app_url);
     CFRelease(path);
+#else
+    // assume it's in the same working directory for now
+    levels_filename = "levels.mbl";
+#endif
   }
 
   try {
