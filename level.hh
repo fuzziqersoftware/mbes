@@ -94,7 +94,7 @@ struct cell_state {
   bool is_pushable_horizontal() const;
   bool is_pushable_vertical() const;
   bool is_dude() const;
-  explosion_type explosion_type() const;
+  explosion_type get_explosion_type() const;
   bool is_left_portal() const;
   bool is_right_portal() const;
   bool is_up_portal() const;

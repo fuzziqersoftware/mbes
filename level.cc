@@ -67,7 +67,7 @@ bool cell_state::is_dude() const {
   return (this->type == ItemDude) || (this->type == BombDude);
 }
 
-explosion_type cell_state::explosion_type() const {
+explosion_type cell_state::get_explosion_type() const {
   if (this->type == ItemDude || this->type == BlueBomb)
     return ItemExplosion;
   if (this->type == GrayBomb)
@@ -317,9 +317,9 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
           this->at(x, y + 1) = cell_state(this->at(x, y).type, Falling, true);
           this->at(x, y) = cell_state(Empty);
         } else if (this->at(x, y + 1).is_volatile() && (this->at(x, y).param == Falling)) {
-          this->pending_explosions.emplace_back(x, y + 1, 1, 0, this->at(x, y + 1).explosion_type());
+          this->pending_explosions.emplace_back(x, y + 1, 1, 0, this->at(x, y + 1).get_explosion_type());
         } else if ((this->at(x, y).type == GreenBomb || this->at(x, y).type == BlueBomb || this->at(x, y).type == GrayBomb) && (this->at(x, y).param == Falling)) {
-          this->pending_explosions.emplace_back(x, y, 1, 2, this->at(x, y).explosion_type());
+          this->pending_explosions.emplace_back(x, y, 1, 2, this->at(x, y).get_explosion_type());
           this->at(x, y).param = Resting;
         } else {
           if (this->at(x, y).param == Falling)
@@ -407,7 +407,7 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
         for (int xx = -it->size; xx <= it->size; xx++) {
           if (this->at(it->x + xx, it->y + yy).destroyable()) {
             if ((xx || yy) && this->at(it->x + xx, it->y + yy).is_volatile()) {
-              explosion_type new_type = this->at(it->x + xx, it->y + yy).explosion_type();
+              explosion_type new_type = this->at(it->x + xx, it->y + yy).get_explosion_type();
               if (it->type == ItemExplosion)
                 new_type = ItemExplosion;
               if (it->type == RockExplosion)
