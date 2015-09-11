@@ -652,7 +652,7 @@ static void glfw_mouse_move_cb(GLFWwindow* window, double x, double y) {
   mouse_y = y;
 
   int window_w, window_h;
-  glfwGetFramebufferSize(window, &window_w, &window_h);
+  glfwGetWindowSize(window, &window_w, &window_h);
   int cell_x = (mouse_x * game.w) / window_w;
   int cell_y = (mouse_y * game.h) / window_h;
 

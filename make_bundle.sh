@@ -43,6 +43,8 @@ cat <<EOF > "$EXECUTABLE_NAME.app/Contents/Info.plist"
 	<string>APPL</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
 </dict>
 </plist>
 EOF
