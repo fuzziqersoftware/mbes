@@ -225,6 +225,15 @@ static void render_cell(const cell_state& cell, int x, int y, int l_w, int l_h,
   glEnd();
 }
 
+static void render_items_remaining(int items_remaining, int window_w, int window_h) {
+  if (items_remaining > 0)
+    draw_text(-0.99, -0.9, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
+        "%d %s REMAINING", items_remaining, (items_remaining == 1) ? "ITEM" : "ITEMS");
+  else if (items_remaining < 0)
+    draw_text(-0.99, -0.9, 0, 1, 0.5, 1, (float)window_w / window_h, 0.01, false,
+        "%d EXTRA %s", -items_remaining, (items_remaining == -1) ? "ITEM" : "ITEMS");
+}
+
 static void render_level_state(const level_state& l, int window_w, int window_h) {
   glBegin(GL_QUADS);
   for (int y = 0; y < l.h; y++)
@@ -239,12 +248,7 @@ static void render_level_state(const level_state& l, int window_w, int window_h)
       render_cell_tris(l.at(x, y), x, y, l.w, l.h);
   glEnd();
 
-  if (l.num_items_remaining > 0)
-    draw_text(-0.99, -0.9, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
-        "%d %s REMAINING", l.num_items_remaining, (l.num_items_remaining == 1) ? "ITEM" : "ITEMS");
-  else if (l.num_items_remaining < 0)
-    draw_text(-0.99, -0.9, 0, 1, 0.5, 1, (float)window_w / window_h, 0.01, false,
-        "%d EXTRA %s", -l.num_items_remaining, (l.num_items_remaining == -1) ? "ITEM" : "ITEMS");
+  render_items_remaining(l.num_items_remaining, window_w, window_h);
 
   if (l.num_red_bombs > 0)
     draw_text(-0.99, -0.8, 0, 1, 0.5, 1, (float)window_w / window_h, 0.01, false,
@@ -416,7 +420,7 @@ static void render_instructions_page(int window_w, int window_h, int page_num) {
 
 
 static void render_palette(int sel_type, int l_w, int l_h, float alpha,
-    bool can_save) {
+    bool can_save, int num_items_remaining) {
   glBegin(GL_QUADS);
 
   glColor4f(1.0, 1.0, 1.0, alpha * 0.5);
@@ -466,6 +470,8 @@ static void render_palette(int sel_type, int l_w, int l_h, float alpha,
     draw_text(0, -0.5, 1, 0, 0, alpha, (float)l_w / l_h, 0.01, true,
         "CAN\'T SAVE A PARTIALLY-PLAYED LEVEL");
   }
+
+  render_items_remaining(num_items_remaining, l_w, l_h);
 }
 
 
@@ -840,7 +846,7 @@ int main(int argc, char* argv[]) {
         render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f,
             0.8f * alpha_factor, 0.0f, 0.0f, 0.0f, 0.1f * alpha_factor);
         render_palette(editor_selected_cell_type, game.w, game.h, alpha_factor,
-            game.frames_executed == 0);
+            game.frames_executed == 0, game.num_items_remaining);
       }
       draw_text(-0.99, 0.97, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
             "EDITING LEVEL %d", level_index);
