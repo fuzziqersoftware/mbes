@@ -266,7 +266,7 @@ static void render_key_commands(float aspect_ratio, bool should_play_sounds) {
   draw_text(0, -0.6, 1, 1, 1, 1, aspect_ratio, 0.01, true,
       should_play_sounds ? "SHIFT+S: MUTE SOUND" : "SHIFT+S: UNMUTE SOUND");
   draw_text(0, -0.7, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-      "SHIFT+LEFT/RIGHT: CHANGE LEVEL");
+      "SHIFT+ARROW KEYS: CHANGE LEVEL");
   draw_text(0, -0.8, 1, 1, 1, 1, aspect_ratio, 0.01, true,
       "ESC: RESTART LEVEL / EXIT");
 }
@@ -514,6 +514,12 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
         return;
       } else if ((key == GLFW_KEY_RIGHT) && (mods & GLFW_MOD_SHIFT)) {
         should_change_to_level = level_index + 1;
+        return;
+      } else if ((key == GLFW_KEY_UP) && (mods & GLFW_MOD_SHIFT)) {
+        should_change_to_level = (level_index < 10) ? 0 : (level_index - 10);
+        return;
+      } else if ((key == GLFW_KEY_DOWN) && (mods & GLFW_MOD_SHIFT)) {
+        should_change_to_level = (level_index >= initial_state.size() - 10) ? (initial_state.size() - 1) : (level_index + 10);
         return;
       }
     } else if (phase == Instructions) {
