@@ -55,17 +55,9 @@ const vector<pair<cell_state, const char*>> editor_available_cells({
   make_pair(cell_state(Portal),            "PORTAL"),
 });
 
-static bool editor_cell_can_be_written(const level_state& l, uint32_t x,
-    uint32_t y) {
-  return true;
-  // uncomment to prevent edting border tiles
-  //return (x > 0) && (x < l.w - 1) && (y > 0) && (y < l.h - 1);
-}
-
 static void editor_write_cell(level_state& l, uint32_t x, uint32_t y,
     const cell_state& cell) {
-  if (editor_cell_can_be_written(l, x, y))
-    l.at(x, y) = cell;
+  l.at(x, y) = cell;
 }
 
 
@@ -844,9 +836,8 @@ int main(int argc, char* argv[]) {
 
     } else if (phase == Editing) {
       render_level_state(game, window_w, window_h);
-      if (editor_cell_can_be_written(game, editor_highlight_x, editor_highlight_y))
-        render_cell(editor_available_cells[editor_selected_cell_type].first,
-            editor_highlight_x, editor_highlight_y, game.w, game.h);
+      render_cell(editor_available_cells[editor_selected_cell_type].first,
+          editor_highlight_x, editor_highlight_y, game.w, game.h);
       if (editor_palette_intensity) {
         float alpha_factor = ((editor_palette_intensity > 256) ? 1.0f : ((float)editor_palette_intensity / 256));
         render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f,
