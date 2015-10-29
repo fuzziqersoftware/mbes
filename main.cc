@@ -109,7 +109,7 @@ static void render_cell_quads(const cell_state& cell, int x, int y, int l_w,
       glColor4f(1.0, 0.0, 0.0, alpha);
       break;
     case Item:
-      glColor4f(1.0, 0.0, 1.0, alpha);
+      glColor4f(0.8, 0.0, 0.8, alpha);
       break;
     case Block:
       glColor4f(1.0, 1.0, 1.0, alpha);
@@ -341,13 +341,13 @@ static void render_instructions_page(int window_w, int window_h, int page_num) {
     draw_text(0,  0.6,   1,   1,   1, 1, aspect_ratio, 0.01, true, "YOU ARE THE \x80 RED BOX. LUCKY YOU!");
     draw_text(0,  0.6,   1,   0,   0, 1, aspect_ratio, 0.01, true, "            \x80                    ");
     draw_text(0,  0.5,   1,   1,   1, 1, aspect_ratio, 0.01, true, "YOUR GOAL IN EACH LEVEL IS TO COLLECT THE \x80 ITEMS, THEN GO TO THE \x80 EXIT.");
-    draw_text(0,  0.5,   1,   0,   1, 1, aspect_ratio, 0.01, true, "                                          \x80                              ");
+    draw_text(0,  0.5, 0.8,   0, 0.8, 1, aspect_ratio, 0.01, true, "                                          \x80                              ");
     draw_text(0,  0.5, 0.5,   1,   0, 1, aspect_ratio, 0.01, true, "                                                                  \x80      ");
 
     draw_text(0,  0.4,   1,   1,   1, 1, aspect_ratio, 0.01, true, "ON SOME LEVELS THERE MAY BE EXTRA ITEMS THAT YOU DON\'T NEED TO COLLECT.");
 
     draw_text(0,  0.2,   1,   1,   1, 1, aspect_ratio, 0.01, true, "WATCH OUT FOR FALLING \x80 ITEMS, \x80 ROCKS AND \x80 BOMBS.");
-    draw_text(0,  0.2,   1,   0,   1, 1, aspect_ratio, 0.01, true, "                      \x80                            ");
+    draw_text(0,  0.2, 0.8,   0, 0.8, 1, aspect_ratio, 0.01, true, "                      \x80                            ");
     draw_text(0,  0.2, 0.6, 0.6, 0.6, 1, aspect_ratio, 0.01, true, "                               \x80                   ");
     draw_text(0,  0.2,   0,   1,   0, 1, aspect_ratio, 0.01, true, "                                           \x81       ");
     draw_text(0,  0.2,   1,   1,   1, 1, aspect_ratio, 0.01, true, "                                           \x82       ");
