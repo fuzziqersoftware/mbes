@@ -62,6 +62,12 @@ static void editor_write_cell(level_state& l, uint32_t x, uint32_t y,
 
 
 
+static const char* plural(uint64_t i) {
+  return (i == 1) ? "" : "S";
+}
+
+
+
 static void render_stripe_animation(int window_w, int window_h, int stripe_width,
     float br, float bg, float bb, float ba, float sr, float sg, float sb,
     float sa) {
@@ -220,13 +226,14 @@ static void render_cell(const cell_state& cell, int x, int y, int l_w, int l_h,
 static void render_items_remaining(int items_remaining, int window_w, int window_h) {
   if (items_remaining > 0)
     draw_text(-0.99, -0.9, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
-        "%d %s REMAINING", items_remaining, (items_remaining == 1) ? "ITEM" : "ITEMS");
+        "%d ITEM%s REMAINING", items_remaining, plural(items_remaining));
   else if (items_remaining < 0)
     draw_text(-0.99, -0.9, 0, 1, 0.5, 1, (float)window_w / window_h, 0.01, false,
-        "%d EXTRA %s", -items_remaining, (items_remaining == -1) ? "ITEM" : "ITEMS");
+        "%d EXTRA ITEM%s", -items_remaining, plural(-items_remaining));
 }
 
-static void render_level_state(const level_state& l, int window_w, int window_h) {
+static void render_level_state(const level_state& l, int window_w, int window_h,
+    bool show_stats) {
   glBegin(GL_QUADS);
   for (int y = 0; y < l.h; y++)
     for (int x = 0; x < l.w; x++)
@@ -240,14 +247,25 @@ static void render_level_state(const level_state& l, int window_w, int window_h)
       render_cell_tris(l.at(x, y), x, y, l.w, l.h);
   glEnd();
 
+  if (show_stats) {
+    uint64_t empty_cells = l.count_cells_of_type(Empty);
+    uint64_t attenuated_space = l.count_attenuated_space();
+    draw_text(-0.99, -0.5, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
+        "%d FRAME%s", l.frames_executed, plural(l.frames_executed));
+    draw_text(-0.99, -0.6, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
+        "%d EMPTY CELL%s", empty_cells, plural(empty_cells));
+    draw_text(-0.99, -0.7, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
+        "%d ATTENUATED CELL%s", attenuated_space, plural(attenuated_space));
+  }
+
   render_items_remaining(l.num_items_remaining, window_w, window_h);
 
   if (l.num_red_bombs > 0)
     draw_text(-0.99, -0.8, 0, 1, 0.5, 1, (float)window_w / window_h, 0.01, false,
-        "%d RED %s", l.num_red_bombs, (l.num_red_bombs == 1) ? "BOMB" : "BOMBS");
+        "%d RED BOMB%s", l.num_red_bombs, plural(l.num_red_bombs));
   else if (l.num_red_bombs < 0)
     draw_text(-0.99, -0.8, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
-        "%d RED %s IN DEBT", -l.num_red_bombs, (l.num_red_bombs == -1) ? "BOMB" : "BOMBS");
+        "%d RED BOMB%s IN DEBT", -l.num_red_bombs, plural(-l.num_red_bombs));
 }
 
 
@@ -480,6 +498,7 @@ string default_levels_filename = "";
 vector<level_state> initial_state;
 level_state game;
 game_phase phase = Paused;
+bool show_stats = false;
 bool player_did_lose = false;
 bool should_reload_state = false;
 bool should_play_sounds = true;
@@ -570,10 +589,11 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
           save_levels(initial_state, levels_filename.c_str());
         }
         phase = Paused;
-      } else if (phase == Playing)
+      } else if (phase == Playing) {
         phase = Paused;
-      else
+      } else {
         phase = Playing;
+      }
       player_did_lose = false;
 
     } else if (key == GLFW_KEY_TAB) {
@@ -600,6 +620,8 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
       current_impulse = Down;
       phase = Playing;
       player_did_lose = false;
+    } else if ((key == GLFW_KEY_X) && ((phase == Playing) || (phase == Paused))) {
+      show_stats = !show_stats;
     } else if ((key == GLFW_KEY_SPACE) && (phase != Instructions)) {
       if (phase == Editing) {
         if (editor_palette_intensity)
@@ -829,13 +851,13 @@ int main(int argc, char* argv[]) {
           "ESC: EXIT");
 
     } else if (phase == Instructions) {
-      render_level_state(game, window_w, window_h);
+      render_level_state(game, window_w, window_h, show_stats);
       render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f, 0.8f,
           0.0f, 0.0f, 0.0f, 0.1f);
       render_instructions_page(window_w, window_h, current_instructions_page);
 
     } else if (phase == Editing) {
-      render_level_state(game, window_w, window_h);
+      render_level_state(game, window_w, window_h, false);
       render_cell(editor_available_cells[editor_selected_cell_type].first,
           editor_highlight_x, editor_highlight_y, game.w, game.h);
       if (editor_palette_intensity) {
@@ -933,7 +955,7 @@ int main(int argc, char* argv[]) {
       }
 
       if (!game.player_did_win) {
-        render_level_state(game, window_w, window_h);
+        render_level_state(game, window_w, window_h, show_stats);
         if (game.updates_per_second != 20.0f)
           render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f,
               0.0f, 0.0f, 0.0f, 0.0f, 0.1f);
