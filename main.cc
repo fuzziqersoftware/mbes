@@ -29,30 +29,30 @@ using namespace std;
 
 
 const vector<pair<cell_state, const char*>> editor_available_cells({
-  make_pair(cell_state(Empty, 1),          "EMPTY"),
-  make_pair(cell_state(Circuit),           "CIRCUIT"),
-  make_pair(cell_state(Rock),              "ROCK"),
-  make_pair(cell_state(Exit),              "EXIT"),
-  make_pair(cell_state(Player),            "PLAYER"),
-  make_pair(cell_state(Item),              "ITEM"),
-  make_pair(cell_state(Block),             "BLOCK"),
-  make_pair(cell_state(RoundBlock),        "ROUND BLOCK"),
-  make_pair(cell_state(RedBomb),           "RED BOMB"),
-  make_pair(cell_state(YellowBomb),        "YELLOW BOMB"),
-  make_pair(cell_state(GreenBomb),         "GREEN BOMB"),
-  make_pair(cell_state(BlueBomb),          "BLUE BOMB"),
-  make_pair(cell_state(GrayBomb),          "GRAY BOMB"),
-  make_pair(cell_state(YellowBombTrigger), "YELLOW TRIGGER"),
-  make_pair(cell_state(BombDude, Left),    "BOMB DUDE"),
-  make_pair(cell_state(ItemDude, Left),    "ITEM DUDE"),
-  make_pair(cell_state(RockGenerator),     "ROCK GENERATOR"),
-  make_pair(cell_state(LeftPortal),        "LEFT PORTAL"),
-  make_pair(cell_state(RightPortal),       "RIGHT PORTAL"),
-  make_pair(cell_state(UpPortal),          "UP PORTAL"),
-  make_pair(cell_state(DownPortal),        "DOWN PORTAL"),
-  make_pair(cell_state(HorizontalPortal),  "HORIZONTAL PORTAL"),
-  make_pair(cell_state(VerticalPortal),    "VERTICAL PORTAL"),
-  make_pair(cell_state(Portal),            "PORTAL"),
+  make_pair(cell_state(Empty, 1),          "empty"),
+  make_pair(cell_state(Circuit),           "circuit"),
+  make_pair(cell_state(Rock),              "rock"),
+  make_pair(cell_state(Exit),              "exit"),
+  make_pair(cell_state(Player),            "player"),
+  make_pair(cell_state(Item),              "item"),
+  make_pair(cell_state(Block),             "block"),
+  make_pair(cell_state(RoundBlock),        "bound block"),
+  make_pair(cell_state(RedBomb),           "red bomb"),
+  make_pair(cell_state(YellowBomb),        "yellow bomb"),
+  make_pair(cell_state(GreenBomb),         "green bomb"),
+  make_pair(cell_state(BlueBomb),          "blue bomb"),
+  make_pair(cell_state(GrayBomb),          "gray bomb"),
+  make_pair(cell_state(YellowBombTrigger), "yellow trigger"),
+  make_pair(cell_state(BombDude, Left),    "bomb dude"),
+  make_pair(cell_state(ItemDude, Left),    "item dude"),
+  make_pair(cell_state(RockGenerator),     "rock generator"),
+  make_pair(cell_state(LeftPortal),        "left portal"),
+  make_pair(cell_state(RightPortal),       "right portal"),
+  make_pair(cell_state(UpPortal),          "up portal"),
+  make_pair(cell_state(DownPortal),        "down portal"),
+  make_pair(cell_state(HorizontalPortal),  "horizontal portal"),
+  make_pair(cell_state(VerticalPortal),    "vertical portal"),
+  make_pair(cell_state(Portal),            "portal"),
 });
 
 static void editor_write_cell(level_state& l, uint32_t x, uint32_t y,
@@ -63,7 +63,7 @@ static void editor_write_cell(level_state& l, uint32_t x, uint32_t y,
 
 
 static const char* plural(uint64_t i) {
-  return (i == 1) ? "" : "S";
+  return (i == 1) ? "" : "s";
 }
 
 
@@ -226,10 +226,10 @@ static void render_cell(const cell_state& cell, int x, int y, int l_w, int l_h,
 static void render_items_remaining(int items_remaining, int window_w, int window_h) {
   if (items_remaining > 0)
     draw_text(-0.99, -0.9, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
-        "%d ITEM%s REMAINING", items_remaining, plural(items_remaining));
+        "%d item%s remaining", items_remaining, plural(items_remaining));
   else if (items_remaining < 0)
     draw_text(-0.99, -0.9, 0, 1, 0.5, 1, (float)window_w / window_h, 0.01, false,
-        "%d EXTRA ITEM%s", -items_remaining, plural(-items_remaining));
+        "%d extra item%s", -items_remaining, plural(-items_remaining));
 }
 
 static void render_level_state(const level_state& l, int window_w, int window_h,
@@ -251,47 +251,47 @@ static void render_level_state(const level_state& l, int window_w, int window_h,
     uint64_t empty_cells = l.count_cells_of_type(Empty);
     uint64_t attenuated_space = l.count_attenuated_space();
     draw_text(-0.99, -0.5, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
-        "%d FRAME%s", l.frames_executed, plural(l.frames_executed));
+        "%d frame%s", l.frames_executed, plural(l.frames_executed));
     draw_text(-0.99, -0.6, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
-        "%d EMPTY CELL%s", empty_cells, plural(empty_cells));
+        "%d empty cell%s", empty_cells, plural(empty_cells));
     draw_text(-0.99, -0.7, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
-        "%d ATTENUATED CELL%s", attenuated_space, plural(attenuated_space));
+        "%d attenuated cell%s", attenuated_space, plural(attenuated_space));
   }
 
   render_items_remaining(l.num_items_remaining, window_w, window_h);
 
   if (l.num_red_bombs > 0)
     draw_text(-0.99, -0.8, 0, 1, 0.5, 1, (float)window_w / window_h, 0.01, false,
-        "%d RED BOMB%s", l.num_red_bombs, plural(l.num_red_bombs));
+        "%d red bomb%s", l.num_red_bombs, plural(l.num_red_bombs));
   else if (l.num_red_bombs < 0)
     draw_text(-0.99, -0.8, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
-        "%d RED BOMB%s IN DEBT", -l.num_red_bombs, plural(-l.num_red_bombs));
+        "%d red bomb%s in debt", -l.num_red_bombs, plural(-l.num_red_bombs));
 }
 
 
 
 static void render_key_commands(float aspect_ratio, bool should_play_sounds) {
   draw_text(0, -0.5, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-      "SHIFT+I: INSTRUCTIONS");
+      "shift+i: instructions");
   draw_text(0, -0.6, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-      should_play_sounds ? "SHIFT+S: MUTE SOUND" : "SHIFT+S: UNMUTE SOUND");
+      "shift+s: %smute sound", should_play_sounds ? "" : "un");
   draw_text(0, -0.7, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-      "SHIFT+ARROW KEYS: CHANGE LEVEL");
+      "shift+arrow keys: change level");
   draw_text(0, -0.8, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-      "ESC: RESTART LEVEL / EXIT");
+      "esc: restart level / exit");
 }
 
 static void render_level_stats(const level_completion& lc, float aspect_ratio) {
   draw_text(0, -0.2, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-      "BEST TIME: %llu", lc.frames);
+      "Best time: %llu", lc.frames);
   draw_text(0, -0.3, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-      "BEST OVER-ACHIEVEMENT: %llu %s", lc.extra_items, (lc.extra_items == 1) ? "ITEM" : "ITEMS");
+      "Most extra items: %llu", lc.extra_items);
   draw_text(0, -0.4, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-      "MOST EXTRA BOMBS: %llu %s", lc.extra_bombs, (lc.extra_bombs == 1) ? "BOMB" : "BOMBS");
+      "Most extra bombs: %llu", lc.extra_bombs);
   draw_text(0, -0.5, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-      "MOST CLEARED SPACE: %llu %s", lc.cleared_space, (lc.cleared_space == 1) ? "CELL" : "CELLS");
+      "Most cleared cells: %llu", lc.cleared_space);
   draw_text(0, -0.6, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-      "LEAST ATTENUATED SPACE: %llu %s", lc.attenuated_space, (lc.attenuated_space == 1) ? "CELL" : "CELLS");
+      "Fewest attenuated cells: %llu", lc.attenuated_space);
 }
 
 static void render_paused_screen(int window_w, int window_h,
@@ -308,38 +308,38 @@ static void render_paused_screen(int window_w, int window_h,
 
   float aspect_ratio = (float)window_w / window_h;
   draw_text(0, 0.9, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
-      "FUZZIQER SOFTWARE");
+      "Fuzziqer Software");
   draw_text(0, 0.7, 1, 1, 1, 1, (float)window_w / window_h, 0.03, true,
       "MOVE BLOCKS AND EAT STUFF");
 
   if (player_did_win) {
     draw_text(0, 0.3, 1, 1, 1, 1, aspect_ratio, 0.02, true,
-        "YOU WIN");
+        "You win!");
     draw_text(0, 0.1, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-        "YOU HAVE COMPLETED ALL %llu LEVELS!", completion.size());
+        "You have completed all %llu levels!", completion.size());
     // TODO render overall stats here
 
   } else {
     if (player_did_lose)
       draw_text(0, 0.3, 1, 0, 0, 1, aspect_ratio, 0.02, true,
-          "LEVEL %d - PRESS ENTER TO TRY AGAIN", level_index);
+          "Press enter to try level %d again", level_index);
     else
       draw_text(0, 0.3, 1, 1, 1, 1, aspect_ratio, 0.02, true,
-          "LEVEL %d - PRESS ENTER TO PLAY", level_index);
+          "Press enter to play level %d", level_index);
 
     if (num_completed == completion.size()) {
       draw_text(0, 0.1, 0.5, 1, 0.5, 1, aspect_ratio, 0.01, true,
-          "YOU HAVE COMPLETED ALL %llu LEVELS!", completion.size());
+          "You have completed all %llu levels!", completion.size());
       render_level_stats(completion[level_index], aspect_ratio);
 
     } else if (completion[level_index].state == Completed) {
       draw_text(0, 0.1, 0.5, 1, 0.5, 1, aspect_ratio, 0.01, true,
-          "YOU HAVE ALREADY COMPLETED THIS LEVEL (%lu/%lu)", num_completed, completion.size());
+          "You have already completed this level (%lu/%lu)", num_completed, completion.size());
       render_level_stats(completion[level_index], aspect_ratio);
 
     } else {
       draw_text(0, 0.1, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-          "YOU HAVE COMPLETED %lu OF %lu LEVELS", num_completed, completion.size());
+          "You have completed %lu of %lu levels", num_completed, completion.size());
       render_key_commands(aspect_ratio, should_play_sounds);
     }
   }
@@ -350,76 +350,66 @@ static void render_instructions_page(int window_w, int window_h, int page_num) {
   float aspect_ratio = (float)window_w / window_h;
 
   draw_text(0, 0.9, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-      "INSTRUCTIONS (PAGE %d/3)",
+      "Instructions (page %d/3)",
       page_num + 1);
   draw_text(0, 0.8, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-      "LEFT/RIGHT ARROW KEYS: CHANGE PAGE; ESC: EXIT INSTRUCTIONS");
+      "left/right arrow keys: change page; esc: exit instructions");
 
   if (page_num == 0) {
-    draw_text(0,  0.6,   1,   1,   1, 1, aspect_ratio, 0.01, true, "YOU ARE THE \x80 RED BOX. LUCKY YOU!");
-    draw_text(0,  0.6,   1,   0,   0, 1, aspect_ratio, 0.01, true, "            \x80                    ");
-    draw_text(0,  0.5,   1,   1,   1, 1, aspect_ratio, 0.01, true, "YOUR GOAL IN EACH LEVEL IS TO COLLECT THE \x80 ITEMS, THEN GO TO THE \x80 EXIT.");
-    draw_text(0,  0.5, 0.8,   0, 0.8, 1, aspect_ratio, 0.01, true, "                                          \x80                              ");
-    draw_text(0,  0.5, 0.5,   1,   0, 1, aspect_ratio, 0.01, true, "                                                                  \x80      ");
+    draw_text(0,  0.6,   1,   1,   1, 1, aspect_ratio, 0.01, true, "You are the red box. Lucky you!");
+    draw_text(0,  0.5,   1,   1,   1, 1, aspect_ratio, 0.01, true, "Your goal in each level is to collect the items (purple), then go to the exit (light green).");
+    draw_text(0,  0.4,   1,   1,   1, 1, aspect_ratio, 0.01, true, "On some levels there may be extra items that you don\'t need to collect.");
 
-    draw_text(0,  0.4,   1,   1,   1, 1, aspect_ratio, 0.01, true, "ON SOME LEVELS THERE MAY BE EXTRA ITEMS THAT YOU DON\'T NEED TO COLLECT.");
+    draw_text(0,  0.2,   1,   1,   1, 1, aspect_ratio, 0.01, true, "Watch out for falling items, rocks and bombs.");
+    draw_text(0,  0.1,   1,   1,   1, 1, aspect_ratio, 0.01, true, "If anything falls on you or explodes near you, you lose!");
+    draw_text(0,  0.0,   1,   1,   1, 1, aspect_ratio, 0.01, true, "You can push rocks and bombs out of the way if there\'s empty space on the other side.");
+    draw_text(0, -0.1,   1,   1,   1, 1, aspect_ratio, 0.01, true, "If stacked, rocks and items will roll off of each other to form a neat pile.");
 
-    draw_text(0,  0.2,   1,   1,   1, 1, aspect_ratio, 0.01, true, "WATCH OUT FOR FALLING \x80 ITEMS, \x80 ROCKS AND \x80 BOMBS.");
-    draw_text(0,  0.2, 0.8,   0, 0.8, 1, aspect_ratio, 0.01, true, "                      \x80                            ");
-    draw_text(0,  0.2, 0.6, 0.6, 0.6, 1, aspect_ratio, 0.01, true, "                               \x80                   ");
-    draw_text(0,  0.2,   0,   1,   0, 1, aspect_ratio, 0.01, true, "                                           \x81       ");
-    draw_text(0,  0.2,   1,   1,   1, 1, aspect_ratio, 0.01, true, "                                           \x82       ");
-    draw_text(0,  0.1,   1,   1,   1, 1, aspect_ratio, 0.01, true, "YOU LOSE IF ANYTHING FALLS ON YOU OR EXPLODES NEAR YOU.");
-    draw_text(0,  0.0,   1,   1,   1, 1, aspect_ratio, 0.01, true, "YOU CAN PUSH ROCKS AND BOMBS OUT OF THE WAY IF THERE'S EMPTY SPACE ON THE OTHER SIDE.");
-    draw_text(0, -0.1,   1,   1,   1, 1, aspect_ratio, 0.01, true, "IF STACKED, ROCKS AND ITEMS WILL ROLL OFF EACH OTHER TO FORM A NEAT PILE.");
-
-    draw_text(0, -0.3,   1,   1,   1, 1, aspect_ratio, 0.01, true, "KEYS WHEN PLAYING:");
-    draw_text(0, -0.4,   1,   1,   1, 1, aspect_ratio, 0.01, true, "ARROW KEYS: MOVE AROUND, PUSH OBJECTS             ");
-    draw_text(0, -0.5,   1,   1,   1, 1, aspect_ratio, 0.01, true, "     SPACE: DROP BOMB (APPEARS WHEN YOU MOVE AWAY)");
-    draw_text(0, -0.6,   1,   1,   1, 1, aspect_ratio, 0.01, true, "       TAB: TOGGLE SPEED (SLOW/FAST)              ");
-    draw_text(0, -0.7,   1,   1,   1, 1, aspect_ratio, 0.01, true, "     ENTER: PAUSE                                 ");
-    draw_text(0, -0.8,   1,   1,   1, 1, aspect_ratio, 0.01, true, "       ESC: RESTART LEVEL / EXIT                  ");
+    draw_text(0, -0.3,   1,   1,   1, 1, aspect_ratio, 0.01, true, "Keys when playing:");
+    draw_text(0, -0.4,   1,   1,   1, 1, aspect_ratio, 0.01, true, "arrow keys: move around, push objects");
+    draw_text(0, -0.5,   1,   1,   1, 1, aspect_ratio, 0.01, true, "space: drop bomb (appears when you move away)");
+    draw_text(0, -0.6,   1,   1,   1, 1, aspect_ratio, 0.01, true, "tab: toggle speed (slow/fast)");
+    draw_text(0, -0.7,   1,   1,   1, 1, aspect_ratio, 0.01, true, "enter: pause");
+    draw_text(0, -0.8,   1,   1,   1, 1, aspect_ratio, 0.01, true, "esc: restart level / exit");
 
   } else if (page_num == 1) {
-    draw_text(0,  0.6,   1,   1,   1, 1, aspect_ratio, 0.01, true, "SOME OBJECTS YOU MIGHT ENCOUNTER:");
-    draw_text(0,  0.4,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x80 CIRCUIT. IT\'S SOLID FOR EVERYTHING EXCEPT YOU - EAT THESE TO GET THEM OUT OF THE WAY.");
-    draw_text(0,  0.4,   0, 0.8,   0, 1, aspect_ratio, 0.01, true, "\x80                                                                                      ");
-    draw_text(0,  0.3,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x80 BLOCK. IT CAN\'T BE MOVED OR DESTROYED BY ANYTHING.                                   ");
-    draw_text(0,  0.2,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x80 ROUND BLOCK. ROCKS AND ITEMS WILL ROLL OFF OF IT. CAN BE DESTROYED BY EXPLOSIONS.    ");
-    draw_text(0,  0.2, 0.9, 0.9,   1, 1, aspect_ratio, 0.01, true, "\x80                                                                                      ");
-    draw_text(0,  0.1,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x80 RED BOMB. YOU CAN PICK THESE UP AND DROP THEM LATER.                                 ");
-    draw_text(0,  0.1,   1,   0,   0, 1, aspect_ratio, 0.01, true, "\x81                                                                                      ");
-    draw_text(0,  0.1,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x82                                                                                      ");
-    draw_text(0,  0.0,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x80 YELLOW BOMB. PUSH THESE AROUND, THEN TOUCH THE YELLOW TRIGGER TO SET THEM OFF.       ");
-    draw_text(0,  0.0, 0.8, 0.8,   0, 1, aspect_ratio, 0.01, true, "\x81                                                                                      ");
-    draw_text(0,  0.0,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x82                                                                                      ");
-    draw_text(0, -0.1,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x80 YELLOW TRIGGER. SETS OFF ALL YELLOW BOMBS AT ONCE.                                   ");
-    draw_text(0, -0.1, 0.8, 0.8,   0, 1, aspect_ratio, 0.01, true, "\x80                                                                                      ");
-    draw_text(0, -0.2,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x80 GREEN BOMB. EXPLODES WHEN IT LANDS AFTER FALLING, OR IF SOMETHING IS DROPPED ON IT.  ");
-    draw_text(0, -0.2,   0,   1,   0, 1, aspect_ratio, 0.01, true, "\x81                                                                                      ");
-    draw_text(0, -0.2,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x82                                                                                      ");
-    draw_text(0, -0.3,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x80 BOMB DUDE. IT MOVES BY ITSELF! NOT HARMFUL, BUT EXPLODES IF SOMETHING FALLS ON IT.   ");
-    draw_text(0, -0.3,   1, 0.5,   0, 1, aspect_ratio, 0.01, true, "\x80                                                                                      ");
-    draw_text(0, -0.4,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x80 ITEM DUDE. LIKE A BOMB DUDE, BUT CREATES NINE ITEMS WHEN YOU KILL IT!                ");
-    draw_text(0, -0.4,   0, 0.5,   1, 1, aspect_ratio, 0.01, true, "\x80                                                                                      ");
-    draw_text(0, -0.5,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x80 PORTAL. YOU CAN ONLY MOVE THROUGH THIS IN THE DIRECTION OF ITS ARROW(S).             ");
-    draw_text(0, -0.5, 0.7,   0,   0, 1, aspect_ratio, 0.01, true, "\x80                                                                                      ");
-    draw_text(0, -0.5,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x83                                                                                      ");
-    draw_text(0, -0.6,   1,   1,   1, 1, aspect_ratio, 0.01, true, "  THERE ALSO MUST BE EMPTY SPACE ON THE OTHER SIDE.                                    ");
-    draw_text(0, -0.8,   1,   1,   1, 1, aspect_ratio, 0.01, true, "THERE MAY BE OTHER TYPES OF OBJECTS NOT MENTIONED HERE. STRANGE THINGS AWAIT...");
+    draw_text(    0,  0.6,   1,   1,   1, 1, aspect_ratio, 0.01, true, "Some objects you might encounter:");
+    draw_text(-0.95,  0.4,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Circuit. It\'s solid for everything except you - eat this to get it out of the way.");
+    draw_text(-0.95,  0.4,   0, 0.8,   0, 1, aspect_ratio, 0.01, false, "\x80");
+    draw_text(-0.95,  0.3,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Block. It can\'t be moved or destroyed by anything.");
+    draw_text(-0.95,  0.2,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Round block. Rocks and items will roll off of it. It can\'t be moved, but it can be destroyed by explosions.");
+    draw_text(-0.95,  0.2, 0.9, 0.9,   1, 1, aspect_ratio, 0.01, false, "\x80");
+    draw_text(-0.95,  0.1,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Red bomb. You can pick this up and drop it somewhere else to blow up objects in your way.");
+    draw_text(-0.95,  0.1,   1,   0,   0, 1, aspect_ratio, 0.01, false, "\x81");
+    draw_text(-0.95,  0.1,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x82");
+    draw_text(-0.95,  0.0,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Yellow bomb. Push this around, then touch the yellow trigger to blow it up.");
+    draw_text(-0.95,  0.0, 0.8, 0.8,   0, 1, aspect_ratio, 0.01, false, "\x81");
+    draw_text(-0.95,  0.0,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x82");
+    draw_text(-0.95, -0.1,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Yellow trigger. Blows up all yellow bombs at once.");
+    draw_text(-0.95, -0.1, 0.8, 0.8,   0, 1, aspect_ratio, 0.01, false, "\x80");
+    draw_text(-0.95, -0.2,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Green bomb. Explodes when something falls on it, or when it lands after falling.");
+    draw_text(-0.95, -0.2,   0,   1,   0, 1, aspect_ratio, 0.01, false, "\x81");
+    draw_text(-0.95, -0.2,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x82");
+    draw_text(-0.95, -0.3,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Bomb dude. It moves by itself! Not harmful, but explodes if something falls on it.");
+    draw_text(-0.95, -0.3,   1, 0.5,   0, 1, aspect_ratio, 0.01, false, "\x80");
+    draw_text(-0.95, -0.4,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Item dude. Like a bomb dude, but creates nine items instead of exploding.");
+    draw_text(-0.95, -0.4,   0, 0.5,   1, 1, aspect_ratio, 0.01, false, "\x80");
+    draw_text(-0.95, -0.5, 0.7,   0,   0, 1, aspect_ratio, 0.01, false, "\x80");
+    draw_text(-0.95, -0.5,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x83 Portal. You can move through this in the direction of its arrow(s) if there\'s empty space on the other side.");
+    draw_text(0, -0.8,   1,   1,   1, 1, aspect_ratio, 0.01, true, "There may be other types of objects not mentioned here. Strange things await...");
 
   } else if (page_num == 2) {
-    draw_text(0,  0.6,   1,   1,   1, 1, aspect_ratio, 0.01, true, "A FEW TIPS:");
-    draw_text(0,  0.4,   1,   1,   1, 1, aspect_ratio, 0.01, true, "SOME LEVELS REQUIRE YOU TO MOVE QUICKLY IN DIFFERENT DIRECTIONS. TRY SLOW MODE (PRESS TAB)");
-    draw_text(0,  0.3,   1,   1,   1, 1, aspect_ratio, 0.01, true, "IF IT\'S TOO DIFFICULT TO MANEUVER QUICKLY ENOUGH.");
-    draw_text(0,  0.1,   1,   1,   1, 1, aspect_ratio, 0.01, true, "DUDES DON\'T HURT YOU, BUT THEY DO TEND TO GET IN THE WAY.");
-    draw_text(0,  0.0,   1,   1,   1, 1, aspect_ratio, 0.01, true, "BE CAREFUL IN CONFINED SPACES WITH DUDES.");
-    draw_text(0, -0.2,   1,   1,   1, 1, aspect_ratio, 0.01, true, "YOU CAN USE RED BOMBS EVEN IF YOU HAVEN\'T PICKED ANY UP, BUT IF YOU'RE IN DEBT (HAVE USED");
-    draw_text(0, -0.3,   1,   1,   1, 1, aspect_ratio, 0.01, true, "MORE RED BOMBS THAN YOU\'VE COLLECTED), THEN YOU CAN\'T FINISH THE LEVEL.");
-    draw_text(0, -0.5,   1,   1,   1, 1, aspect_ratio, 0.01, true, "AFTER USING A RED BOMB, YOU CAN PICK IT UP AGAIN BEFORE IT EXPLODES. FOR EXAMPLE, YOU CAN");
-    draw_text(0, -0.6,   1,   1,   1, 1, aspect_ratio, 0.01, true, "USE A RED BOMB TO TEMPORARILY PREVENT OBJECTS FROM FALLING OR ROLLING.");
-    draw_text(0, -0.8,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x80 BLOCKS CAN\'T BE DESTROYED BY ANYTHING. IF YOU NEED ALL THE ITEMS FROM AN ITEM DUDE,");
-    draw_text(0, -0.9,   1,   1,   1, 1, aspect_ratio, 0.01, true, "DON\'T BLOW IT UP NEAR A BLOCK - YOU'LL LOSE AN ITEM THAT YOU NEED.");
+    draw_text(0,  0.6,   1,   1,   1, 1, aspect_ratio, 0.01, true, "A few tips:");
+    draw_text(0,  0.4,   1,   1,   1, 1, aspect_ratio, 0.01, true, "Some levels require you to move quickly in different directions. Try slow mode (press tab)");
+    draw_text(0,  0.3,   1,   1,   1, 1, aspect_ratio, 0.01, true, "If it\'s too difficult to maneuver quickly enough.");
+    draw_text(0,  0.1,   1,   1,   1, 1, aspect_ratio, 0.01, true, "Dudes don\'t hurt you, but they do tend to get in the way.");
+    draw_text(0,  0.0,   1,   1,   1, 1, aspect_ratio, 0.01, true, "Be careful in confined spaces with dudes.");
+    draw_text(0, -0.2,   1,   1,   1, 1, aspect_ratio, 0.01, true, "You can use red bombs even if you haven\'t picked any up, but if you\'re in debt (have used");
+    draw_text(0, -0.3,   1,   1,   1, 1, aspect_ratio, 0.01, true, "more red bombs than you\'ve collected), then you can\'t finish the level.");
+    draw_text(0, -0.5,   1,   1,   1, 1, aspect_ratio, 0.01, true, "After using a red bomb, you can pick it up again before it explodes. For example, you can");
+    draw_text(0, -0.6,   1,   1,   1, 1, aspect_ratio, 0.01, true, "use a red bomb to temporarily prevent objects from falling or rolling.");
+    draw_text(0, -0.8,   1,   1,   1, 1, aspect_ratio, 0.01, true, "\x80 Blocks can\'t be destroyed by anything. If you need all the items from an item dude,");
+    draw_text(0, -0.9,   1,   1,   1, 1, aspect_ratio, 0.01, true, "don\'t blow it up near a \x80 block - you\'ll lose an item that you need.");
 
   } else {
     draw_text(0, 0.7, 1, 0, 0, 1, aspect_ratio, 0.01, true,
@@ -462,23 +452,23 @@ static void render_palette(int sel_type, int l_w, int l_h, float alpha,
       "MOVE BLOCKS AND DESIGN LEVELS");
 
   draw_text(0, 0.0, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
-      "SPACE / RIGHT-CLICK: OPEN/CLOSE PALETTE");
+      "space: open/close palette");
   draw_text(0, -0.1, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
-      "LEFT-CLICK: DRAW CELL (DRAG TO DRAW MULTIPLE)");
+      "left-click: draw cell (click+drag to draw multiple)");
   draw_text(0, -0.2, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
-      "SHIFT+UP/DOWN: CHANGE REQUIRED ITEM COUNT");
+      "shift+up/down: change required item count");
   draw_text(0, -0.3, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
-      "I: AUTOMATICALLY COMPUTE REQUIRED ITEM COUNT");
+      "i: automatically compute required item count");
   if (can_save) {
     draw_text(0, -0.4, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
-        "ESC: EXIT EDITOR; DON\'T SAVE CHANGES");
+        "esc: exit editor");
     draw_text(0, -0.5, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
-        "ENTER: EXIT EDITOR AND SAVE CHANGES");
+        "enter: exit editor and save initial level state");
   } else {
     draw_text(0, -0.4, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
-        "ESC / ENTER: EXIT EDITOR; DON\'T SAVE CHANGES");
+        "esc/enter: exit editor");
     draw_text(0, -0.5, 1, 0, 0, alpha, (float)l_w / l_h, 0.01, true,
-        "CAN\'T SAVE A PARTIALLY-PLAYED LEVEL");
+        "can\'t save initial level state; you\'ve already started playing it");
   }
 
   render_items_remaining(num_items_remaining, l_w, l_h);
@@ -846,9 +836,9 @@ int main(int argc, char* argv[]) {
       render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f, 0.6f,
           1.0, 0.0, 0.0, 0.3);
       draw_text(0, 0.3, 1, 0, 0, 1, (float)window_w / window_h, 0.02, true,
-          "LEVEL IS CORRUPT");
+          "level is corrupt");
       draw_text(0, 0.0, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
-          "ESC: EXIT");
+          "esc: exit");
 
     } else if (phase == Instructions) {
       render_level_state(game, window_w, window_h, show_stats);
@@ -868,7 +858,7 @@ int main(int argc, char* argv[]) {
             game.frames_executed == 0, game.num_items_remaining);
       }
       draw_text(-0.99, 0.97, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
-            "EDITING LEVEL %d", level_index);
+            "editing level %d", level_index);
 
       last_update_time = now();
 
