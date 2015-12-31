@@ -374,28 +374,32 @@ static void render_instructions_page(int window_w, int window_h, int page_num) {
 
   } else if (page_num == 1) {
     draw_text(    0,  0.6,   1,   1,   1, 1, aspect_ratio, 0.01, true, "Some objects you might encounter:");
-    draw_text(-0.95,  0.4,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Circuit. It\'s solid for everything except you - eat this to get it out of the way.");
-    draw_text(-0.95,  0.4,   0, 0.8,   0, 1, aspect_ratio, 0.01, false, "\x80");
-    draw_text(-0.95,  0.3,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Block. It can\'t be moved or destroyed by anything.");
-    draw_text(-0.95,  0.2,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Round block. Rocks and items will roll off of it. It can\'t be moved, but it can be destroyed by explosions.");
-    draw_text(-0.95,  0.2, 0.9, 0.9,   1, 1, aspect_ratio, 0.01, false, "\x80");
-    draw_text(-0.95,  0.1,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Red bomb. You can pick this up and drop it somewhere else to blow up objects in your way.");
-    draw_text(-0.95,  0.1,   1,   0,   0, 1, aspect_ratio, 0.01, false, "\x81");
-    draw_text(-0.95,  0.1,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x82");
-    draw_text(-0.95,  0.0,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Yellow bomb. Push this around, then touch the yellow trigger to blow it up.");
-    draw_text(-0.95,  0.0, 0.8, 0.8,   0, 1, aspect_ratio, 0.01, false, "\x81");
+    draw_text(-0.95,  0.5,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Rock. Gets in the way. Falls if there\'s nothing under it. You can push it around, or blow it up to get rid of it.");
+    draw_text(-0.95,  0.5, 0.5, 0.5, 0.5, 1, aspect_ratio, 0.01, false, "\x80");
+    draw_text(-0.95,  0.4,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Item. Your goal is to collect these. Careful - they fall and can be destroyed by explosions too.");
+    draw_text(-0.95,  0.4, 0.8,   0, 0.8, 1, aspect_ratio, 0.01, false, "\x80");
+    draw_text(-0.95,  0.3,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Circuit. It\'s solid for everything except you - eat this to get it out of the way.");
+    draw_text(-0.95,  0.3,   0, 0.8,   0, 1, aspect_ratio, 0.01, false, "\x80");
+    draw_text(-0.95,  0.2,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Block. It can\'t be moved or destroyed by anything.");
+    draw_text(-0.95,  0.1,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Round block. Rocks and items will roll off of it. It can\'t be moved, but it can be destroyed by explosions.");
+    draw_text(-0.95,  0.1, 0.9, 0.9,   1, 1, aspect_ratio, 0.01, false, "\x80");
+    draw_text(-0.95,  0.0,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Red bomb. You can pick this up and drop it somewhere else to blow up objects in your way.");
+    draw_text(-0.95,  0.0,   1,   0,   0, 1, aspect_ratio, 0.01, false, "\x81");
     draw_text(-0.95,  0.0,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x82");
-    draw_text(-0.95, -0.1,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Yellow trigger. Blows up all yellow bombs at once.");
-    draw_text(-0.95, -0.1, 0.8, 0.8,   0, 1, aspect_ratio, 0.01, false, "\x80");
-    draw_text(-0.95, -0.2,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Green bomb. Explodes when something falls on it, or when it lands after falling.");
-    draw_text(-0.95, -0.2,   0,   1,   0, 1, aspect_ratio, 0.01, false, "\x81");
-    draw_text(-0.95, -0.2,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x82");
-    draw_text(-0.95, -0.3,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Bomb dude. It moves by itself! Not harmful, but explodes if something falls on it.");
-    draw_text(-0.95, -0.3,   1, 0.5,   0, 1, aspect_ratio, 0.01, false, "\x80");
-    draw_text(-0.95, -0.4,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Item dude. Like a bomb dude, but creates nine items instead of exploding.");
-    draw_text(-0.95, -0.4,   0, 0.5,   1, 1, aspect_ratio, 0.01, false, "\x80");
-    draw_text(-0.95, -0.5, 0.7,   0,   0, 1, aspect_ratio, 0.01, false, "\x80");
-    draw_text(-0.95, -0.5,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x83 Portal. You can move through this in the direction of its arrow(s) if there\'s empty space on the other side.");
+    draw_text(-0.95, -0.1,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Yellow bomb. Push this around, then touch the yellow trigger to blow it up.");
+    draw_text(-0.95, -0.1, 0.8, 0.8,   0, 1, aspect_ratio, 0.01, false, "\x81");
+    draw_text(-0.95, -0.1,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x82");
+    draw_text(-0.95, -0.2,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Yellow trigger. Blows up all yellow bombs at once.");
+    draw_text(-0.95, -0.2, 0.8, 0.8,   0, 1, aspect_ratio, 0.01, false, "\x80");
+    draw_text(-0.95, -0.3,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Green bomb. Explodes when something falls on it, or when it lands after falling.");
+    draw_text(-0.95, -0.3,   0,   1,   0, 1, aspect_ratio, 0.01, false, "\x81");
+    draw_text(-0.95, -0.3,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x82");
+    draw_text(-0.95, -0.4,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Bomb dude. It moves by itself! Not harmful, but explodes if something falls on it.");
+    draw_text(-0.95, -0.4,   1, 0.5,   0, 1, aspect_ratio, 0.01, false, "\x80");
+    draw_text(-0.95, -0.5,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x80 Item dude. Like a bomb dude, but creates nine items instead of exploding.");
+    draw_text(-0.95, -0.5,   0, 0.5,   1, 1, aspect_ratio, 0.01, false, "\x80");
+    draw_text(-0.95, -0.6, 0.7,   0,   0, 1, aspect_ratio, 0.01, false, "\x80");
+    draw_text(-0.95, -0.6,   1,   1,   1, 1, aspect_ratio, 0.01, false, "\x83 Portal. You can move through this in the direction of its arrow(s) if there\'s empty space on the other side.");
     draw_text(0, -0.8,   1,   1,   1, 1, aspect_ratio, 0.01, true, "There may be other types of objects not mentioned here. Strange things await...");
 
   } else if (page_num == 2) {
