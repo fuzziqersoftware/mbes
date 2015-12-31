@@ -264,6 +264,18 @@ int level_state::count_attenuated_space() const {
   return count;
 }
 
+int level_state::compute_entropy() const {
+  // entropy is the number adjacent cell pairs that are different
+  // only need to check right and down for each cell (up and left were already
+  // checked by the time we get to this cell)
+  int entropy = 0;
+  for (int y = 0; y < this->h; y++)
+    for (int x = 0; x < this->w; x++)
+      entropy += (int)(this->at(x, y).type != this->at(x + 1, y).type) +
+                 (int)(this->at(x, y).type != this->at(x, y + 1).type);
+  return entropy;
+}
+
 bool level_state::validate() const {
   // check that a Player cell exists
   for (int y = 0; y < this->h; y++)
