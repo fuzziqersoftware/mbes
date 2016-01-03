@@ -299,7 +299,8 @@ static void render_level_stats(const level_completion& lc, float aspect_ratio) {
 
 static void render_paused_screen(int window_w, int window_h,
     const vector<level_completion>& completion, int level_index,
-    bool player_did_win, bool player_did_lose, bool should_play_sounds) {
+    bool player_did_win, bool player_did_lose, uint64_t frames_executed,
+    bool should_play_sounds) {
 
   size_t num_completed = 0;
   for (const auto& it : completion)
@@ -326,9 +327,12 @@ static void render_paused_screen(int window_w, int window_h,
     if (player_did_lose)
       draw_text(0, 0.3, 1, 0, 0, 1, aspect_ratio, 0.02, true,
           "Press enter to try level %d again", level_index);
+    else if (frames_executed)
+      draw_text(0, 0.3, 1, 1, 1, 1, aspect_ratio, 0.02, true,
+          "Press enter to continue level %d", level_index);
     else
       draw_text(0, 0.3, 1, 1, 1, 1, aspect_ratio, 0.02, true,
-          "Press enter to play level %d", level_index);
+          "Press enter to begin level %d", level_index);
 
     if (num_completed == completion.size()) {
       draw_text(0, 0.1, 0.5, 1, 0.5, 1, aspect_ratio, 0.01, true,
@@ -966,7 +970,8 @@ int main(int argc, char* argv[]) {
 
       if (phase == Paused)
         render_paused_screen(window_w, window_h, completion, level_index,
-            game.player_did_win, player_did_lose, should_play_sounds);
+            game.player_did_win, player_did_lose, game.frames_executed,
+            should_play_sounds);
     }
 
     glfwSwapBuffers(window);
