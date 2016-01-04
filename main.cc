@@ -36,7 +36,7 @@ const vector<pair<cell_state, const char*>> editor_available_cells({
   make_pair(cell_state(Player),            "player"),
   make_pair(cell_state(Item),              "item"),
   make_pair(cell_state(Block),             "block"),
-  make_pair(cell_state(RoundBlock),        "bound block"),
+  make_pair(cell_state(RoundBlock),        "round block"),
   make_pair(cell_state(RedBomb),           "red bomb"),
   make_pair(cell_state(YellowBomb),        "yellow bomb"),
   make_pair(cell_state(GreenBomb),         "green bomb"),
