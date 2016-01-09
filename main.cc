@@ -28,31 +28,41 @@ using namespace std;
 
 
 
-const vector<pair<cell_state, const char*>> editor_available_cells({
-  make_pair(cell_state(Empty, 1),          "empty"),
-  make_pair(cell_state(Circuit),           "circuit"),
-  make_pair(cell_state(Rock),              "rock"),
-  make_pair(cell_state(Exit),              "exit"),
-  make_pair(cell_state(Player),            "player"),
-  make_pair(cell_state(Item),              "item"),
-  make_pair(cell_state(Block),             "block"),
-  make_pair(cell_state(RoundBlock),        "round block"),
-  make_pair(cell_state(RedBomb),           "red bomb"),
-  make_pair(cell_state(YellowBomb),        "yellow bomb"),
-  make_pair(cell_state(GreenBomb),         "green bomb"),
-  make_pair(cell_state(BlueBomb),          "blue bomb"),
-  make_pair(cell_state(GrayBomb),          "gray bomb"),
-  make_pair(cell_state(YellowBombTrigger), "yellow trigger"),
-  make_pair(cell_state(BombDude, Left),    "bomb dude"),
-  make_pair(cell_state(ItemDude, Left),    "item dude"),
-  make_pair(cell_state(RockGenerator),     "rock generator"),
-  make_pair(cell_state(LeftPortal),        "left portal"),
-  make_pair(cell_state(RightPortal),       "right portal"),
-  make_pair(cell_state(UpPortal),          "up portal"),
-  make_pair(cell_state(DownPortal),        "down portal"),
-  make_pair(cell_state(HorizontalPortal),  "horizontal portal"),
-  make_pair(cell_state(VerticalPortal),    "vertical portal"),
-  make_pair(cell_state(Portal),            "portal"),
+struct editor_cell_definition {
+  cell_state st;
+  const char* name;
+  const char* description;
+
+  editor_cell_definition(cell_type ty, int param, const char* name,
+      const char* description) : st(ty, param), name(name),
+      description(description) { }
+};
+
+const vector<editor_cell_definition> editor_available_cells({
+  {Empty, 1,             "empty", "empty space. attenuates if left alone."},
+  {Circuit, 0,           "circuit", "solid for everything except the player. does not fall. can be destroyed by explosions."},
+  {Rock, 0,              "rock", "obstacle. falls and rolls. objects roll off of it. can be destroyed by explosions."},
+  {Exit, 0,              "exit", "goal when all necessary items are collected. objects roll off of it. can be destroyed by explosions."},
+  {Player, 0,            "player", "hey look! it\'s me!"},
+  {Item, 0,              "item", "the player needs some number of these to complete the level."},
+  {Block, 0,             "block", "obstacle. does not fall. objects do not roll off of it. cannot be destroyed."},
+  {RoundBlock, 0,        "round block", "obstacle. does not fall. objects roll off of it. can be destroyed by explosions."},
+  {RedBomb, 0,           "red bomb", "the player can pick these up and drop them somewhere else. does not fall. explodes when something falls on it."},
+  {YellowBomb, 0,        "yellow bomb", "the player can push these around and blow them up with the trigger. does not fall. explodes when something falls on it."},
+  {GreenBomb, 0,         "green bomb", "the player can push these around and drop them on things. explodes when something falls on it or when it lands after falling."},
+  {BlueBomb, 0,          "blue bomb", "behaves like a green bomb, but explodes into items."},
+  {GrayBomb, 0,          "gray bomb", "behaves like a green bomb, but explodes into rocks."},
+  {YellowBombTrigger, 0, "yellow trigger", "explodes all yellow bombs at once. otherwise, behaves like a circuit."},
+  {BombDude, Left,       "bomb dude", "automaton. follows the wall to its left. explodes when something falls on it."},
+  {ItemDude, Left,       "item dude", "behaves like a bomb dude, but explodes into items."},
+  {RockGenerator, 0,     "rock generator", "creates a rock every 16 frames if there\'s empty space beneath it. explodes when something falls on it."},
+  {LeftPortal, 0,        "left portal", "the player can move through this only to the left. can be destroyed by explosions."},
+  {RightPortal, 0,       "right portal", "the player can move through this only to the right. can be destroyed by explosions."},
+  {UpPortal, 0,          "up portal", "the player can move through this only going up. can be destroyed by explosions."},
+  {DownPortal, 0,        "down portal", "the player can move through this only going down. can be destroyed by explosions."},
+  {HorizontalPortal, 0,  "horizontal portal", "the player can move through this only horizontally. can be destroyed by explosions."},
+  {VerticalPortal, 0,    "vertical portal", "the player can move through this only vertically. can be destroyed by explosions."},
+  {Portal, 0,            "portal", "the player can move through this in any direction. can be destroyed by explosions."},
 });
 
 static void editor_write_cell(level_state& l, uint32_t x, uint32_t y,
@@ -447,17 +457,19 @@ static void render_palette(int sel_type, int l_w, int l_h, float alpha,
   glVertex3f(to_window(4 * sel_type + 3, 2 * l_w), -to_window(7, 2 * l_h), 1);
 
   for (size_t x = 0; x < editor_available_cells.size(); x++)
-    render_cell_quads(editor_available_cells[x].first, 2 * x + 2, 2, l_w, l_h, alpha);
+    render_cell_quads(editor_available_cells[x].st, 2 * x + 2, 2, l_w, l_h, alpha);
   glEnd();
 
   glBegin(GL_TRIANGLES);
   glColor4f(1.0, 1.0, 1.0, alpha);
   for (size_t x = 0; x < editor_available_cells.size(); x++)
-    render_cell_tris(editor_available_cells[x].first, 2 * x + 2, 2, l_w, l_h);
+    render_cell_tris(editor_available_cells[x].st, 2 * x + 2, 2, l_w, l_h);
   glEnd();
 
   draw_text(0, 0.6, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
-      editor_available_cells[sel_type].second);
+      editor_available_cells[sel_type].name);
+  draw_text(0, 0.5, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
+      editor_available_cells[sel_type].description);
 
   draw_text(0.0, 0.2, 1, 1, 1, alpha, (float)l_w / l_h, 0.02, true,
       "MOVE BLOCKS AND DESIGN LEVELS");
@@ -669,7 +681,7 @@ static void glfw_mouse_button_cb(GLFWwindow* window, int button, int action,
   if (!editor_palette_intensity) {
     editor_drawing = true;
     editor_write_cell(game, editor_highlight_x, editor_highlight_y,
-        editor_available_cells[editor_selected_cell_type].first);
+        editor_available_cells[editor_selected_cell_type].st);
   } else if (button == GLFW_MOUSE_BUTTON_LEFT)
     editor_palette_intensity = 0;
 }
@@ -699,7 +711,7 @@ static void glfw_mouse_move_cb(GLFWwindow* window, double x, double y) {
 
   } else if (editor_drawing) {
     editor_write_cell(game, editor_highlight_x, editor_highlight_y,
-        editor_available_cells[editor_selected_cell_type].first);
+        editor_available_cells[editor_selected_cell_type].st);
   }
 }
 
@@ -859,7 +871,7 @@ int main(int argc, char* argv[]) {
 
     } else if (phase == Editing) {
       render_level_state(game, window_w, window_h, false);
-      render_cell(editor_available_cells[editor_selected_cell_type].first,
+      render_cell(editor_available_cells[editor_selected_cell_type].st,
           editor_highlight_x, editor_highlight_y, game.w, game.h);
       if (editor_palette_intensity) {
         float alpha_factor = ((editor_palette_intensity > 256) ? 1.0f : ((float)editor_palette_intensity / 256));
