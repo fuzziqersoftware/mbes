@@ -13,6 +13,7 @@
 
 #include <GLFW/glfw3.h>
 
+#include <deque>
 #include <list>
 #include <stdexcept>
 #include <string>
@@ -515,6 +516,7 @@ bool show_stats = false;
 bool player_did_lose = false;
 bool should_reload_state = false;
 bool should_play_sounds = true;
+deque<enum player_impulse> recent_impulses;
 enum player_impulse current_impulse = None;
 int level_index = -1;
 int should_change_to_level = -1;
@@ -619,18 +621,22 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
 
     } else if ((key == GLFW_KEY_LEFT) && ((phase == Playing) || (phase == Paused))) {
       current_impulse = Left;
+      recent_impulses.emplace_back(Left);
       phase = Playing;
       player_did_lose = false;
     } else if ((key == GLFW_KEY_RIGHT) && ((phase == Playing) || (phase == Paused))) {
       current_impulse = Right;
+      recent_impulses.emplace_back(Right);
       phase = Playing;
       player_did_lose = false;
     } else if ((key == GLFW_KEY_UP) && ((phase == Playing) || (phase == Paused))) {
       current_impulse = Up;
+      recent_impulses.emplace_back(Up);
       phase = Playing;
       player_did_lose = false;
     } else if ((key == GLFW_KEY_DOWN) && ((phase == Playing) || (phase == Paused))) {
       current_impulse = Down;
+      recent_impulses.emplace_back(Down);
       phase = Playing;
       player_did_lose = false;
     } else if ((key == GLFW_KEY_X) && ((phase == Playing) || (phase == Paused))) {
@@ -947,7 +953,13 @@ int main(int argc, char* argv[]) {
         uint64_t update_diff = now_time - last_update_time;
         if (update_diff >= usec_per_update) {
           if (phase == Playing) {
-            uint64_t events = game.exec_frame(current_impulse);
+            enum player_impulse effective_impulse = current_impulse;
+            if (!recent_impulses.empty()) {
+              effective_impulse = recent_impulses.front();
+              recent_impulses.pop_front();
+            }
+
+            uint64_t events = game.exec_frame(effective_impulse);
             if (should_play_sounds) {
               if (events & (RedBombCollected | ItemCollected))
                 get_item_sound.play();
