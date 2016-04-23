@@ -536,10 +536,10 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
   if (((action == GLFW_PRESS) || (action == GLFW_REPEAT))) {
     if (phase == Paused) {
       if ((key == GLFW_KEY_LEFT) && (mods & GLFW_MOD_SHIFT)) {
-        should_change_to_level = level_index - 1;
+        should_change_to_level = (level_index == 0) ? (initial_state.size() - 1) : (level_index - 1);
         return;
       } else if ((key == GLFW_KEY_RIGHT) && (mods & GLFW_MOD_SHIFT)) {
-        should_change_to_level = level_index + 1;
+        should_change_to_level = (level_index == initial_state.size() - 1) ? 0 : (level_index + 1);
         return;
       } else if ((key == GLFW_KEY_UP) && (mods & GLFW_MOD_SHIFT)) {
         should_change_to_level = (level_index < 10) ? 0 : (level_index - 10);
