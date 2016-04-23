@@ -423,7 +423,7 @@ static void render_instructions_page(int window_w, int window_h, int page_num) {
   } else if (page_num == 2) {
     draw_text(0,  0.6,   1,   1,   1, 1, aspect_ratio, 0.01, true, "A few tips:");
     draw_text(0,  0.4,   1,   1,   1, 1, aspect_ratio, 0.01, true, "Some levels require you to move quickly in different directions. Try slow mode (press tab)");
-    draw_text(0,  0.3,   1,   1,   1, 1, aspect_ratio, 0.01, true, "If it\'s too difficult to maneuver quickly enough.");
+    draw_text(0,  0.3,   1,   1,   1, 1, aspect_ratio, 0.01, true, "if it\'s too difficult to maneuver quickly enough.");
     draw_text(0,  0.1,   1,   1,   1, 1, aspect_ratio, 0.01, true, "Dudes don\'t hurt you, but they do tend to get in the way.");
     draw_text(0,  0.0,   1,   1,   1, 1, aspect_ratio, 0.01, true, "Be careful in confined spaces with dudes.");
     draw_text(0, -0.2,   1,   1,   1, 1, aspect_ratio, 0.01, true, "You can use red bombs even if you haven\'t picked any up, but if you\'re in debt (have used");
