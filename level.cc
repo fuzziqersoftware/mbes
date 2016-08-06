@@ -559,8 +559,10 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
     this->player_y %= this->h;
 
   // if the player has lost, update the loss frame if not already set
-  } else if (!this->player_lose_frame)
+  } else if (!this->player_lose_frame) {
     this->player_lose_frame = this->frames_executed;
+    this->updates_per_second = 20.0f;
+  }
 
   // finally, clear all the moved flags for the next frame
   for (int y = 0; y < this->h; y++)
