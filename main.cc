@@ -39,31 +39,43 @@ struct editor_cell_definition {
       description(description) { }
 };
 
-const vector<editor_cell_definition> editor_available_cells({
-  {Empty, 1,             "empty", "empty space. attenuates if left alone."},
-  {Circuit, 0,           "circuit", "solid for everything except the player. does not fall. can be destroyed by explosions."},
-  {Rock, 0,              "rock", "obstacle. falls and rolls. objects roll off of it. can be destroyed by explosions."},
-  {Exit, 0,              "exit", "goal when all necessary items are collected. objects roll off of it. can be destroyed by explosions."},
-  {Player, 0,            "player", "hey look! it\'s me!"},
-  {Item, 0,              "item", "the player needs some number of these to complete the level."},
-  {Block, 0,             "block", "obstacle. does not fall. objects do not roll off of it. cannot be destroyed."},
-  {RoundBlock, 0,        "round block", "obstacle. does not fall. objects roll off of it. can be destroyed by explosions."},
-  {RedBomb, 0,           "red bomb", "the player can pick these up and drop them somewhere else. does not fall. explodes when something falls on it."},
-  {YellowBomb, 0,        "yellow bomb", "the player can push these around and blow them up with the trigger. does not fall. explodes when something falls on it."},
-  {GreenBomb, 0,         "green bomb", "the player can push these around and drop them on things. explodes when something falls on it or when it lands after falling."},
-  {BlueBomb, 0,          "blue bomb", "behaves like a green bomb, but explodes into items."},
-  {GrayBomb, 0,          "gray bomb", "behaves like a green bomb, but explodes into rocks."},
-  {YellowBombTrigger, 0, "yellow trigger", "explodes all yellow bombs at once. otherwise, behaves like a circuit."},
-  {BombDude, Left,       "bomb dude", "automaton. follows the wall to its left. explodes when something falls on it."},
-  {ItemDude, Left,       "item dude", "behaves like a bomb dude, but explodes into items."},
-  {RockGenerator, 0,     "rock generator", "creates a rock every 16 frames if there\'s empty space beneath it. explodes when something falls on it."},
-  {LeftPortal, 0,        "left portal", "the player can move through this only to the left. can be destroyed by explosions."},
-  {RightPortal, 0,       "right portal", "the player can move through this only to the right. can be destroyed by explosions."},
-  {UpPortal, 0,          "up portal", "the player can move through this only going up. can be destroyed by explosions."},
-  {DownPortal, 0,        "down portal", "the player can move through this only going down. can be destroyed by explosions."},
-  {HorizontalPortal, 0,  "horizontal portal", "the player can move through this only horizontally. can be destroyed by explosions."},
-  {VerticalPortal, 0,    "vertical portal", "the player can move through this only vertically. can be destroyed by explosions."},
-  {Portal, 0,            "portal", "the player can move through this in any direction. can be destroyed by explosions."},
+const vector<vector<editor_cell_definition>> editor_available_cells({
+  {
+    {Empty, 1,                "empty", "empty space. attenuates if left alone."},
+    {Circuit, 0,              "circuit", "solid for everything except the player. does not fall. can be destroyed by explosions."},
+    {Rock, 0,                 "rock", "obstacle. falls and rolls. objects roll off of it. can be destroyed by explosions."},
+    {Exit, 0,                 "exit", "goal when all necessary items are collected. objects roll off of it. can be destroyed by explosions."},
+    {Player, 0,               "player", "hey look! it\'s me!"},
+    {Item, 0,                 "item", "the player needs some number of these to complete the level."},
+    {Block, 0,                "block", "obstacle. does not fall. objects do not roll off of it. cannot be destroyed."},
+    {RoundBlock, 0,           "round block", "obstacle. does not fall. objects roll off of it. can be destroyed by explosions."},
+    {RedBomb, 0,              "red bomb", "the player can pick these up and drop them somewhere else. does not fall. explodes when something falls on it."},
+    {YellowBomb, 0,           "yellow bomb", "the player can push these around and blow them up with the trigger. does not fall. explodes when something falls on it."},
+    {GreenBomb, 0,            "green bomb", "the player can push these around and drop them on things. explodes when something falls on it or when it lands after falling."},
+    {BlueBomb, 0,             "blue bomb", "behaves like a green bomb, but explodes into items."},
+    {GrayBomb, 0,             "gray bomb", "behaves like a green bomb, but explodes into rocks."},
+    {YellowBombTrigger, 0,    "yellow trigger", "explodes all yellow bombs at once. otherwise, behaves like a circuit."},
+    {BombDude, Left,          "bomb dude", "automaton. follows the wall to its left. explodes when something falls on it."},
+    {ItemDude, Left,          "item dude", "behaves like a bomb dude, but explodes into items."},
+    {RockGenerator, 0,        "rock generator", "creates a rock every 16 frames if there\'s empty space beneath it. explodes when something falls on it."},
+    {LeftPortal, 0,           "left portal", "the player can move through this only to the left. can be destroyed by explosions."},
+    {RightPortal, 0,          "right portal", "the player can move through this only to the right. can be destroyed by explosions."},
+    {UpPortal, 0,             "up portal", "the player can move through this only going up. can be destroyed by explosions."},
+    {DownPortal, 0,           "down portal", "the player can move through this only going down. can be destroyed by explosions."},
+    {HorizontalPortal, 0,     "horizontal portal", "the player can move through this only horizontally. can be destroyed by explosions."},
+    {VerticalPortal, 0,       "vertical portal", "the player can move through this only vertically. can be destroyed by explosions."},
+    {Portal, 0,               "portal", "the player can move through this in any direction. can be destroyed by explosions."},
+    {Destroyer, 0,            "destroyer", "makes anything above it explode."},
+    {Deleter, 0,              "deleter", "makes anything above it disappear."},
+  }, {
+    {LeftJumpPortal, 0,       "left jump portal", "the player can move through this only to the left. can be destroyed by explosions."},
+    {RightJumpPortal, 0,      "right jump portal", "the player can move through this only to the right. can be destroyed by explosions."},
+    {UpJumpPortal, 0,         "up jump portal", "the player can move through this only going up. can be destroyed by explosions."},
+    {DownJumpPortal, 0,       "down jump portal", "the player can move through this only going down. can be destroyed by explosions."},
+    {HorizontalJumpPortal, 0, "horizontal jump portal", "the player can move through this only horizontally. can be destroyed by explosions."},
+    {VerticalJumpPortal, 0,   "vertical jump portal", "the player can move through this only vertically. can be destroyed by explosions."},
+    {JumpPortal, 0,           "jump portal", "the player can move through this in any direction. can be destroyed by explosions."},
+  }
 });
 
 static void editor_write_cell(level_state& l, uint32_t x, uint32_t y,
@@ -107,6 +119,32 @@ static void render_stripe_animation(int window_w, int window_h, int stripe_width
 
 static void render_cell_quads(const cell_state& cell, int x, int y, int l_w,
     int l_h, float alpha = 1.0f) {
+
+  float x1 = to_window(x, l_w);
+  float x2 = to_window(x + 1, l_w);
+  float y1 = to_window(y, l_h);
+  float y2 = to_window(y + 1, l_h);
+
+  if (cell.type == Destroyer) {
+    glColor4f(1.0, 0.5, 0.0, alpha);
+    glVertex3f(x1, -y1, 1);
+    glVertex3f(x2, -y1, 1);
+    glColor4f(0.5, 0.0, 0.0, alpha);
+    glVertex3f(x2, -y2, 1);
+    glVertex3f(x1, -y2, 1);
+    return;
+  }
+
+  if (cell.type == Deleter) {
+    glColor4f(1.0, 0.0, 0.0, alpha);
+    glVertex3f(x1, -y1, 1);
+    glVertex3f(x2, -y1, 1);
+    glColor4f(1.0, 1.0, 1.0, alpha);
+    glVertex3f(x2, -y2, 1);
+    glVertex3f(x1, -y2, 1);
+    return;
+  }
+
   bool draw_center = false;
   float center_r = 1.0, center_g = 1.0, center_b = 1.0;
   switch (cell.type) {
@@ -182,19 +220,32 @@ static void render_cell_quads(const cell_state& cell, int x, int y, int l_w,
     case Portal:
       glColor4f(0.7, 0.0, 0.0, alpha);
       break;
+    case LeftJumpPortal:
+    case RightJumpPortal:
+    case UpJumpPortal:
+    case DownJumpPortal:
+    case HorizontalJumpPortal:
+    case VerticalJumpPortal:
+    case JumpPortal:
+      glColor4f(0.0, 0.7, 0.7, alpha);
+      break;
   }
 
-  glVertex3f(to_window(x, l_w), -to_window(y, l_h), 1);
-  glVertex3f(to_window(x + 1, l_w), -to_window(y, l_h), 1);
-  glVertex3f(to_window(x + 1, l_w), -to_window(y + 1, l_h), 1);
-  glVertex3f(to_window(x, l_w), -to_window(y + 1, l_h), 1);
+  glVertex3f(x1, -y1, 1);
+  glVertex3f(x2, -y1, 1);
+  glVertex3f(x2, -y2, 1);
+  glVertex3f(x1, -y2, 1);
 
   if (draw_center) {
     glColor4f(center_r, center_g, center_b, alpha);
-    glVertex3f(to_window(4 * x + 1, 4 * l_w), -to_window(4 * y + 1, 4 * l_h), 1);
-    glVertex3f(to_window(4 * x + 3, 4 * l_w), -to_window(4 * y + 1, 4 * l_h), 1);
-    glVertex3f(to_window(4 * x + 3, 4 * l_w), -to_window(4 * y + 3, 4 * l_h), 1);
-    glVertex3f(to_window(4 * x + 1, 4 * l_w), -to_window(4 * y + 3, 4 * l_h), 1);
+    x1 = to_window(4 * x + 1, 4 * l_w);
+    x2 = to_window(4 * x + 3, 4 * l_w);
+    y1 = to_window(4 * y + 1, 4 * l_h);
+    y2 = to_window(4 * y + 3, 4 * l_h);
+    glVertex3f(x1, -y1, 1);
+    glVertex3f(x2, -y1, 1);
+    glVertex3f(x2, -y2, 1);
+    glVertex3f(x1, -y2, 1);
   }
 }
 
@@ -441,58 +492,57 @@ static void render_instructions_page(int window_w, int window_h, int page_num) {
 
 
 
-static void render_palette(int sel_type, int l_w, int l_h, float alpha,
+static void render_palette(const editor_cell_definition* selected_def, int l_w, int l_h, float alpha,
     bool can_save, int num_items_remaining) {
-  glBegin(GL_QUADS);
 
-  glColor4f(1.0, 1.0, 1.0, alpha * 0.5);
-  glVertex3f(to_window(3, 2 * l_w), -to_window(3, 2 * l_h), 1);
-  glVertex3f(to_window(4 * editor_available_cells.size() + 3, 2 * l_w), -to_window(3, 2 * l_h), 1);
-  glVertex3f(to_window(4 * editor_available_cells.size() + 3, 2 * l_w), -to_window(7, 2 * l_h), 1);
-  glVertex3f(to_window(3, 2 * l_w), -to_window(7, 2 * l_h), 1);
+  for (size_t y = 0; y < editor_available_cells.size(); y++) {
+    glBegin(GL_QUADS);
+    for (size_t x = 0; x < editor_available_cells[y].size(); x++) {
+      if (selected_def && (editor_available_cells[y][x].st.type == selected_def->st.type))
+        glColor4f(1.0, 1.0, 1.0, alpha);
+      else
+        glColor4f(0.5, 0.5, 0.5, alpha * 0.5);
+      glVertex3f(to_window(7 + 4 * x, 2 * l_w), -to_window(3 + 4 * y, 2 * l_h), 1);
+      glVertex3f(to_window(3 + 4 * x, 2 * l_w), -to_window(3 + 4 * y, 2 * l_h), 1);
+      glVertex3f(to_window(3 + 4 * x, 2 * l_w), -to_window(7 + 4 * y, 2 * l_h), 1);
+      glVertex3f(to_window(7 + 4 * x, 2 * l_w), -to_window(7 + 4 * y, 2 * l_h), 1);
+      render_cell_quads(editor_available_cells[y][x].st, 2 * x + 2, 2 * y + 2, l_w, l_h, alpha);
+    }
+    glEnd();
 
-  glColor4f(1.0, 1.0, 1.0, alpha);
-  glVertex3f(to_window(4 * sel_type + 3, 2 * l_w), -to_window(3, 2 * l_h), 1);
-  glVertex3f(to_window(4 * sel_type + 7, 2 * l_w), -to_window(3, 2 * l_h), 1);
-  glVertex3f(to_window(4 * sel_type + 7, 2 * l_w), -to_window(7, 2 * l_h), 1);
-  glVertex3f(to_window(4 * sel_type + 3, 2 * l_w), -to_window(7, 2 * l_h), 1);
+    glBegin(GL_TRIANGLES);
+    glColor4f(1.0, 1.0, 1.0, alpha);
+    for (size_t x = 0; x < editor_available_cells[y].size(); x++)
+      render_cell_tris(editor_available_cells[y][x].st, 2 * x + 2, 2 * y + 2, l_w, l_h);
+    glEnd();
+  }
 
-  for (size_t x = 0; x < editor_available_cells.size(); x++)
-    render_cell_quads(editor_available_cells[x].st, 2 * x + 2, 2, l_w, l_h, alpha);
-  glEnd();
+  if (selected_def) {
+    draw_text(0, 0.5, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
+        selected_def->name);
+    draw_text(0, 0.4, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
+        selected_def->description);
+  }
 
-  glBegin(GL_TRIANGLES);
-  glColor4f(1.0, 1.0, 1.0, alpha);
-  for (size_t x = 0; x < editor_available_cells.size(); x++)
-    render_cell_tris(editor_available_cells[x].st, 2 * x + 2, 2, l_w, l_h);
-  glEnd();
-
-  draw_text(0, 0.6, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
-      editor_available_cells[sel_type].name);
-  draw_text(0, 0.5, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
-      editor_available_cells[sel_type].description);
-
-  draw_text(0.0, 0.2, 1, 1, 1, alpha, (float)l_w / l_h, 0.02, true,
+  draw_text(0.0, 0.1, 1, 1, 1, alpha, (float)l_w / l_h, 0.02, true,
       "MOVE BLOCKS AND DESIGN LEVELS");
 
-  draw_text(0, 0.0, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
-      "space: open/close palette");
   draw_text(0, -0.1, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
-      "left-click: draw cell (click+drag to draw multiple)");
+      "space: open/close palette");
   draw_text(0, -0.2, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
-      "shift+up/down: change required item count");
+      "left-click: draw cell (click+drag to draw multiple)");
   draw_text(0, -0.3, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
+      "shift+up/down: change required item count");
+  draw_text(0, -0.4, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
       "i: automatically compute required item count");
   if (can_save) {
-    draw_text(0, -0.4, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
-        "esc: exit editor");
     draw_text(0, -0.5, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
-        "enter: exit editor and save initial level state");
+        "esc: exit editor; don't save level");
+    draw_text(0, -0.6, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
+        "enter: exit editor and save level");
   } else {
-    draw_text(0, -0.4, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
-        "esc/enter: exit editor");
-    draw_text(0, -0.5, 1, 0, 0, alpha, (float)l_w / l_h, 0.01, true,
-        "can\'t save initial level state; you\'ve already started playing it");
+    draw_text(0, -0.5, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
+        "esc/enter: exit editor and continue playing");
   }
 
   render_items_remaining(num_items_remaining, l_w, l_h);
@@ -525,7 +575,7 @@ int current_instructions_page = 0;
 int mouse_x, mouse_y;
 int editor_palette_intensity = 0;
 int editor_highlight_x = 0, editor_highlight_y = 0;
-int editor_selected_cell_type;
+const editor_cell_definition* editor_selected_cell_type = NULL;
 bool editor_drawing = false;
 
 
@@ -684,10 +734,10 @@ static void glfw_mouse_button_cb(GLFWwindow* window, int button, int action,
       editor_palette_intensity = 512;
   }
 
-  if (!editor_palette_intensity) {
+  if (!editor_palette_intensity && editor_selected_cell_type) {
     editor_drawing = true;
     editor_write_cell(game, editor_highlight_x, editor_highlight_y,
-        editor_available_cells[editor_selected_cell_type].st);
+        editor_selected_cell_type->st);
   } else if (button == GLFW_MOUSE_BUTTON_LEFT)
     editor_palette_intensity = 0;
 }
@@ -711,13 +761,16 @@ static void glfw_mouse_move_cb(GLFWwindow* window, double x, double y) {
       (cell_y >= 1) && (cell_y <= 3))
     editor_palette_intensity = 512;
 
-  if (editor_palette_intensity && ((cell_x & 1) == 0) && (cell_x >= 2) &&
-      (cell_x <= 2 * editor_available_cells.size() + 1) && (cell_y == 2)) {
-    editor_selected_cell_type = (cell_x - 2) / 2;
+  if (editor_palette_intensity &&
+      ((cell_y & 1) == 0) && (cell_y >= 2) &&
+      (cell_y <= 2 * editor_available_cells.size() + 1) &&
+      ((cell_x & 1) == 0) && (cell_x >= 2) &&
+      (cell_x <= 2 * editor_available_cells[(cell_y - 2) / 2].size() + 1)) {
+    editor_selected_cell_type = &editor_available_cells[(cell_y - 2) / 2][(cell_x - 2) / 2];
 
-  } else if (editor_drawing) {
+  } else if (editor_drawing && editor_selected_cell_type) {
     editor_write_cell(game, editor_highlight_x, editor_highlight_y,
-        editor_available_cells[editor_selected_cell_type].st);
+        editor_selected_cell_type->st);
   }
 }
 
@@ -877,8 +930,10 @@ int main(int argc, char* argv[]) {
 
     } else if (phase == Editing) {
       render_level_state(game, window_w, window_h, false);
-      render_cell(editor_available_cells[editor_selected_cell_type].st,
-          editor_highlight_x, editor_highlight_y, game.w, game.h);
+      if (editor_selected_cell_type) {
+        render_cell(editor_selected_cell_type->st, editor_highlight_x,
+            editor_highlight_y, game.w, game.h);
+      }
       if (editor_palette_intensity) {
         float alpha_factor = ((editor_palette_intensity > 256) ? 1.0f : ((float)editor_palette_intensity / 256));
         render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f,

@@ -52,6 +52,15 @@ enum cell_type {
   Portal,
   GrayBomb,
   RockGenerator,
+  Destroyer,
+  Deleter,
+  LeftJumpPortal,
+  RightJumpPortal,
+  UpJumpPortal,
+  DownJumpPortal,
+  HorizontalJumpPortal,
+  VerticalJumpPortal,
+  JumpPortal,
 };
 
 enum explosion_type {
@@ -99,6 +108,7 @@ struct cell_state {
   bool is_right_portal() const;
   bool is_up_portal() const;
   bool is_down_portal() const;
+  bool is_jump_portal() const;
 };
 
 struct explosion_info {
