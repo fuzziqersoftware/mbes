@@ -513,6 +513,8 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
           }
         } else {
           portal_target_cell = &this->at(this->player_x - 2, this->player_y);
+          new_player_x = this->player_x - 2;
+          new_player_y = this->player_y;
         }
 
       } else if ((impulse == Right) && player_target_cell->is_right_portal()) {
@@ -527,6 +529,8 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
           }
         } else {
           portal_target_cell = &this->at(this->player_x + 2, this->player_y);
+          new_player_x = this->player_x + 2;
+          new_player_y = this->player_y;
         }
 
       } else if ((impulse == Up) && player_target_cell->is_up_portal()) {
@@ -541,6 +545,8 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
           }
         } else {
           portal_target_cell = &this->at(this->player_x, this->player_y - 2);
+          new_player_x = this->player_x;
+          new_player_y = this->player_y - 2;
         }
 
       } else if ((impulse == Down) && player_target_cell->is_down_portal()) {
@@ -555,6 +561,8 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
           }
         } else {
           portal_target_cell = &this->at(this->player_x, this->player_y + 2);
+          new_player_x = this->player_x;
+          new_player_y = this->player_y + 2;
         }
       }
 
