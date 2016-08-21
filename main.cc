@@ -229,6 +229,11 @@ static void render_cell_quads(const cell_state& cell, int x, int y, int l_w,
     case JumpPortal:
       glColor4f(0.0, 0.7, 0.7, alpha);
       break;
+    case Destroyer:
+    case Deleter:
+      // unreachable because we checked for these above, but this silences a
+      // compiler warning
+      break;
   }
 
   glVertex3f(x1, -y1, 1);
@@ -335,13 +340,16 @@ static void render_level_state(const level_state& l, int window_w, int window_h,
 
 
 
-static void render_key_commands(float aspect_ratio, bool should_play_sounds) {
+static void render_key_commands(float aspect_ratio, bool should_play_sounds,
+    bool show_stats) {
+  draw_text(0, -0.4, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+      "shift+i: how to play");
   draw_text(0, -0.5, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-      "shift+i: instructions");
-  draw_text(0, -0.6, 1, 1, 1, 1, aspect_ratio, 0.01, true,
       "shift+s: %smute sound", should_play_sounds ? "" : "un");
-  draw_text(0, -0.7, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+  draw_text(0, -0.6, 1, 1, 1, 1, aspect_ratio, 0.01, true,
       "shift+arrow keys: change level");
+  draw_text(0, -0.7, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+      "x: %s stats", show_stats ? "hide" : "show");
   draw_text(0, -0.8, 1, 1, 1, 1, aspect_ratio, 0.01, true,
       "esc: restart level / exit");
 }
@@ -357,12 +365,14 @@ static void render_level_stats(const level_completion& lc, float aspect_ratio) {
       "Most cleared cells: %llu", lc.cleared_space);
   draw_text(0, -0.6, 1, 1, 1, 1, aspect_ratio, 0.01, true,
       "Fewest attenuated cells: %llu", lc.attenuated_space);
+  draw_text(0, -0.7, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+      "Least entropy: %llu", lc.entropy);
 }
 
 static void render_paused_screen(int window_w, int window_h,
     const vector<level_completion>& completion, int level_index,
     bool player_did_win, bool player_did_lose, uint64_t frames_executed,
-    bool should_play_sounds) {
+    bool should_play_sounds, bool show_stats) {
 
   size_t num_completed = 0;
   for (const auto& it : completion)
@@ -407,9 +417,9 @@ static void render_paused_screen(int window_w, int window_h,
       render_level_stats(completion[level_index], aspect_ratio);
 
     } else {
-      draw_text(0, 0.1, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-          "You have completed %lu of %lu levels", num_completed, completion.size());
-      render_key_commands(aspect_ratio, should_play_sounds);
+      draw_text(0, 0.1, 1, 0.5, 0.5, 1, aspect_ratio, 0.01, true,
+          "You haven\'t completed this level yet (%lu/%lu)", num_completed, completion.size());
+      render_key_commands(aspect_ratio, should_play_sounds, show_stats);
     }
   }
 }
@@ -419,10 +429,10 @@ static void render_instructions_page(int window_w, int window_h, int page_num) {
   float aspect_ratio = (float)window_w / window_h;
 
   draw_text(0, 0.9, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-      "Instructions (page %d/3)",
+      "How to play (page %d/3)",
       page_num + 1);
   draw_text(0, 0.8, 1, 1, 1, 1, aspect_ratio, 0.01, true,
-      "left/right arrow keys: change page; esc: exit instructions");
+      "left/right arrow keys: change page / esc: exit to main menu");
 
   if (page_num == 0) {
     draw_text(0,  0.6,   1,   1,   1, 1, aspect_ratio, 0.01, true, "You are the red box. Lucky you!");
@@ -543,6 +553,8 @@ static void render_palette(const editor_cell_definition* selected_def, int l_w, 
   } else {
     draw_text(0, -0.5, 1, 1, 1, alpha, (float)l_w / l_h, 0.01, true,
         "esc/enter: exit editor and continue playing");
+    draw_text(0, -0.6, 1, 0.5, 0.5, alpha, (float)l_w / l_h, 0.01, true,
+        "editing current level state only; changes will be lost on restart");
   }
 
   render_items_remaining(num_items_remaining, l_w, l_h);
@@ -834,9 +846,13 @@ int main(int argc, char* argv[]) {
   }
 
   struct passwd *pw = getpwuid(getuid());
-  string level_completion_filename = string(pw->pw_dir) + "/.mbes_completion";
+  string level_completion_filename = string(pw->pw_dir) + "/.mbes_progress";
   vector<level_completion> completion = load_level_completion_state(
-      level_completion_filename.c_str());
+      level_completion_filename);
+  if (completion.empty()) {
+    completion = load_level_completion_state_v1(
+        string(pw->pw_dir) + "/.mbes_completion");
+  }
   completion.resize(initial_state.size());
 
   if (level_index < 0) {
@@ -972,6 +988,9 @@ int main(int argc, char* argv[]) {
         uint64_t attenuated_space = game.count_attenuated_space();
         if (attenuated_space < c.attenuated_space)
           c.attenuated_space = attenuated_space;
+        uint64_t entropy = game.compute_entropy();
+        if (entropy < c.entropy)
+          c.entropy = entropy;
 
         int next_level_index;
         if (level_index < initial_state.size() - 1) {
@@ -1050,7 +1069,7 @@ int main(int argc, char* argv[]) {
       if (phase == Paused)
         render_paused_screen(window_w, window_h, completion, level_index,
             game.player_did_win, player_did_lose, game.frames_executed,
-            should_play_sounds);
+            should_play_sounds, show_stats);
     }
 
     glfwSwapBuffers(window);
