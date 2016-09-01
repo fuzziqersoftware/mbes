@@ -346,7 +346,7 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
           this->at(x, y).param++;
       }
 
-      // rule #4: rocks, items and green bombs fall
+      // rule #4: rocks, items and certain bombs fall
       if (this->at(x, y).should_fall() && !this->at(x, y).moved) {
         if (this->at(x, y + 1).type == Empty) {
           events_occurred |= ObjectFalling;
@@ -354,8 +354,9 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
           this->at(x, y) = cell_state(Empty);
         } else if (this->at(x, y + 1).is_volatile() && (this->at(x, y).param == Falling)) {
           this->pending_explosions.emplace_back(x, y + 1, 1, 0, this->at(x, y + 1).get_explosion_type());
-        } else if ((this->at(x, y).type == GreenBomb || this->at(x, y).type == BlueBomb || this->at(x, y).type == GrayBomb) && (this->at(x, y).param == Falling)) {
+        } else if (this->at(x, y).is_bomb() && (this->at(x, y).param == Falling)) {
           this->pending_explosions.emplace_back(x, y, 1, 2, this->at(x, y).get_explosion_type());
+          events_occurred |= ObjectLanded;
           this->at(x, y).param = Resting;
         } else {
           if (this->at(x, y).param == Falling)
