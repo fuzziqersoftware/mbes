@@ -318,14 +318,16 @@ static void render_level_state(const level_state& l, int window_w, int window_h,
     uint64_t empty_cells = l.count_cells_of_type(Empty);
     uint64_t attenuated_space = l.count_attenuated_space();
     uint64_t entropy = l.compute_entropy();
-    draw_text(-0.99, -0.4, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
+    glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
+    draw_text(-0.99, -0.4, 1, 1, 1, 1, (float)window_w / window_h, 0.01, false,
         "%d frame%s", l.frames_executed, plural(l.frames_executed));
-    draw_text(-0.99, -0.5, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
+    draw_text(-0.99, -0.5, 1, 1, 1, 1, (float)window_w / window_h, 0.01, false,
         "%d empty cell%s", empty_cells, plural(empty_cells));
-    draw_text(-0.99, -0.6, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
+    draw_text(-0.99, -0.6, 1, 1, 1, 1, (float)window_w / window_h, 0.01, false,
         "%d attenuated cell%s", attenuated_space, plural(attenuated_space));
-    draw_text(-0.99, -0.7, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
+    draw_text(-0.99, -0.7, 1, 1, 1, 1, (float)window_w / window_h, 0.01, false,
         "%d bit%s of entropy", entropy, plural(entropy));
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   }
 
   render_items_remaining(l.num_items_remaining, window_w, window_h);
