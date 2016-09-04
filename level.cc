@@ -65,6 +65,10 @@ bool cell_state::is_pushable_vertical() const {
   return (this->type == YellowBomb);
 }
 
+bool cell_state::is_pullable() const {
+  return (this->type == PullStone);
+}
+
 bool cell_state::is_dude() const {
   return (this->type == ItemDude) || (this->type == BombDude);
 }
@@ -599,7 +603,28 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
           *player_target_cell = cell_state(Empty);
         }
 
-        if (player_target_cell->is_edible()) {
+        // check if the cell is pullable - if so, pull it
+        if (player_target_cell->is_pullable()) {
+          events_occurred |= ObjectPushed;
+
+          cell_state target_cell_contents = *player_target_cell;
+          *player_target_cell = this->at(this->player_x, this->player_y);
+          this->at(this->player_x, this->player_y) = target_cell_contents;
+
+          // just ignore bomb drops when pulling
+          this->player_will_drop_bomb = false;
+
+          if (impulse == Up)
+            this->player_y--;
+          else if (impulse == Down)
+            this->player_y++;
+          else if (impulse == Left)
+            this->player_x--;
+          else if (impulse == Right)
+            this->player_x++;
+
+        // check if the cell is edible - if so, eat it
+        } else if (player_target_cell->is_edible()) {
           if (player_target_cell->type == YellowBombTrigger)
             for (int yy = 0; yy < this->h; yy++)
               for (int xx = 0; xx < this->w; xx++)

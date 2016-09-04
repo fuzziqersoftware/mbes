@@ -58,6 +58,10 @@ const vector<vector<editor_cell_definition>> editor_available_cells({
     {BombDude, Left,          "bomb dude", "automaton. follows the wall to its left. explodes when something falls on it."},
     {ItemDude, Left,          "item dude", "behaves like a bomb dude, but explodes into items."},
     {RockGenerator, 0,        "rock generator", "creates a rock every 16 frames if there\'s empty space beneath it. explodes when something falls on it."},
+    {Destroyer, 0,            "destroyer", "makes anything above it explode."},
+    {Deleter, 0,              "deleter", "makes anything above it disappear."},
+    {PullStone, 0,            "pull stone", "the player can swap places with this."},
+  }, {
     {LeftPortal, 0,           "left portal", "the player can move through this only to the left. can be destroyed by explosions."},
     {RightPortal, 0,          "right portal", "the player can move through this only to the right. can be destroyed by explosions."},
     {UpPortal, 0,             "up portal", "the player can move through this only going up. can be destroyed by explosions."},
@@ -65,9 +69,6 @@ const vector<vector<editor_cell_definition>> editor_available_cells({
     {HorizontalPortal, 0,     "horizontal portal", "the player can move through this only horizontally. can be destroyed by explosions."},
     {VerticalPortal, 0,       "vertical portal", "the player can move through this only vertically. can be destroyed by explosions."},
     {Portal, 0,               "portal", "the player can move through this in any direction. can be destroyed by explosions."},
-    {Destroyer, 0,            "destroyer", "makes anything above it explode."},
-    {Deleter, 0,              "deleter", "makes anything above it disappear."},
-  }, {
     {LeftJumpPortal, 0,       "left jump portal", "the player can move through this only to the left. can be destroyed by explosions."},
     {RightJumpPortal, 0,      "right jump portal", "the player can move through this only to the right. can be destroyed by explosions."},
     {UpJumpPortal, 0,         "up jump portal", "the player can move through this only going up. can be destroyed by explosions."},
@@ -146,7 +147,8 @@ static void render_cell_quads(const cell_state& cell, int x, int y, int l_w,
   }
 
   bool draw_center = false;
-  float center_r = 1.0, center_g = 1.0, center_b = 1.0;
+  bool draw_edges = false;
+  float alt_r = 1.0, alt_g = 1.0, alt_b = 1.0;
   switch (cell.type) {
     case Empty:
       glColor4f(0.0, 0.0, (float)cell.param / 256, alpha);
@@ -154,6 +156,9 @@ static void render_cell_quads(const cell_state& cell, int x, int y, int l_w,
     case Circuit:
       glColor4f(0.0, 0.8, 0.0, alpha);
       break;
+    case PullStone:
+      draw_edges = true;
+      alt_r = alt_g = alt_b = 0.9;
     case Rock:
       glColor4f(0.6, 0.6, 0.6, alpha);
       break;
@@ -195,9 +200,9 @@ static void render_cell_quads(const cell_state& cell, int x, int y, int l_w,
     case RockGenerator:
       glColor4f(0.6, 0.6, 0.6, alpha);
       draw_center = true;
-      center_r = 0.0;
-      center_g = 0.0;
-      center_b = 0.0;
+      alt_r = 0.0;
+      alt_g = 0.0;
+      alt_b = 0.0;
       break;
     case YellowBombTrigger:
       glColor4f(0.8, 0.8, 0.0, alpha);
@@ -242,7 +247,7 @@ static void render_cell_quads(const cell_state& cell, int x, int y, int l_w,
   glVertex3f(x1, -y2, 1);
 
   if (draw_center) {
-    glColor4f(center_r, center_g, center_b, alpha);
+    glColor4f(alt_r, alt_g, alt_b, alpha);
     x1 = to_window(4 * x + 1, 4 * l_w);
     x2 = to_window(4 * x + 3, 4 * l_w);
     y1 = to_window(4 * y + 1, 4 * l_h);
@@ -250,6 +255,33 @@ static void render_cell_quads(const cell_state& cell, int x, int y, int l_w,
     glVertex3f(x1, -y1, 1);
     glVertex3f(x2, -y1, 1);
     glVertex3f(x2, -y2, 1);
+    glVertex3f(x1, -y2, 1);
+  }
+  if (draw_edges) {
+    glColor4f(alt_r, alt_g, alt_b, alpha);
+    float x1i = to_window(4 * x + 1, 4 * l_w);
+    float x2i = to_window(4 * x + 3, 4 * l_w);
+    float y1i = to_window(4 * y + 1, 4 * l_h);
+    float y2i = to_window(4 * y + 3, 4 * l_h);
+
+    glVertex3f(x1, -y1, 1);
+    glVertex3f(x1i, -y1, 1);
+    glVertex3f(x1i, -y1i, 1);
+    glVertex3f(x1, -y1i, 1);
+
+    glVertex3f(x2i, -y2i, 1);
+    glVertex3f(x2, -y2i, 1);
+    glVertex3f(x2, -y2, 1);
+    glVertex3f(x2i, -y2, 1);
+
+    glVertex3f(x2i, -y1, 1);
+    glVertex3f(x2, -y1, 1);
+    glVertex3f(x2, -y1i, 1);
+    glVertex3f(x2i, -y1i, 1);
+
+    glVertex3f(x1, -y2i, 1);
+    glVertex3f(x1i, -y2i, 1);
+    glVertex3f(x1i, -y2, 1);
     glVertex3f(x1, -y2, 1);
   }
 }
