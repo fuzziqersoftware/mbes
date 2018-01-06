@@ -417,8 +417,6 @@ static void render_paused_screen(int window_w, int window_h,
       0.0f, 0.0f, 0.1f);
 
   float aspect_ratio = (float)window_w / window_h;
-  draw_text(0, 0.9, 1, 1, 1, 1, (float)window_w / window_h, 0.01, true,
-      "Fuzziqer Software");
   draw_text(0, 0.7, 1, 1, 1, 1, (float)window_w / window_h, 0.03, true,
       "MOVE BLOCKS AND EAT STUFF");
 
