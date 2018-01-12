@@ -303,13 +303,13 @@ bool level_state::validate() const {
 
 
 
-void level_state::player_drop_bomb() {
-  this->player_will_drop_bomb = true;
-}
-
-uint64_t level_state::exec_frame(enum player_impulse impulse) {
+uint64_t level_state::exec_frame(const struct player_actions& actions) {
 
   uint64_t events_occurred = NoEvents;
+
+  if (actions.drop_bomb) {
+    this->player_will_drop_bomb = true;
+  }
 
   for (int32_t y = this->h - 1; y >= 0; y--) {
     for (int32_t x = 0; x < this->w; x++) {
@@ -477,13 +477,13 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
   // if the player is losing or has lost, don't let them move
   if (this->player_is_alive()) {
     cell_state* player_target_cell = NULL;
-    if (impulse == Up)
+    if (actions.impulse == Up)
       player_target_cell = &this->at(this->player_x, this->player_y - 1);
-    else if (impulse == Down)
+    else if (actions.impulse == Down)
       player_target_cell = &this->at(this->player_x, this->player_y + 1);
-    else if (impulse == Left)
+    else if (actions.impulse == Left)
       player_target_cell = &this->at(this->player_x - 1, this->player_y);
-    else if (impulse == Right)
+    else if (actions.impulse == Right)
       player_target_cell = &this->at(this->player_x + 1, this->player_y);
 
     if (player_target_cell) {
@@ -506,7 +506,7 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
       // player's movement direction
       cell_state* portal_target_cell = NULL;
       int32_t new_player_x, new_player_y;
-      if ((impulse == Left) && player_target_cell->is_left_portal()) {
+      if ((actions.impulse == Left) && player_target_cell->is_left_portal()) {
         if (player_target_cell->is_jump_portal()) {
           portal_target_cell = player_target_cell;
           for (int z = 2; z < this->w && portal_target_cell == player_target_cell; z++) {
@@ -522,7 +522,7 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
           new_player_y = this->player_y;
         }
 
-      } else if ((impulse == Right) && player_target_cell->is_right_portal()) {
+      } else if ((actions.impulse == Right) && player_target_cell->is_right_portal()) {
         if (player_target_cell->is_jump_portal()) {
           portal_target_cell = player_target_cell;
           for (int z = 2; z < this->w && portal_target_cell == player_target_cell; z++) {
@@ -538,7 +538,7 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
           new_player_y = this->player_y;
         }
 
-      } else if ((impulse == Up) && player_target_cell->is_up_portal()) {
+      } else if ((actions.impulse == Up) && player_target_cell->is_up_portal()) {
         if (player_target_cell->is_jump_portal()) {
           portal_target_cell = player_target_cell;
           for (int z = 2; z < this->h && portal_target_cell == player_target_cell; z++) {
@@ -554,7 +554,7 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
           new_player_y = this->player_y - 2;
         }
 
-      } else if ((impulse == Down) && player_target_cell->is_down_portal()) {
+      } else if ((actions.impulse == Down) && player_target_cell->is_down_portal()) {
         if (player_target_cell->is_jump_portal()) {
           portal_target_cell = player_target_cell;
           for (int z = 2; z < this->h && portal_target_cell == player_target_cell; z++) {
@@ -574,13 +574,13 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
       if (portal_target_cell && portal_target_cell->type == Empty) {
         *portal_target_cell = this->at(this->player_x, this->player_y);
         if (this->player_will_drop_bomb) {
+          this->player_will_drop_bomb = false;
           this->num_red_bombs--;
           this->at(this->player_x, this->player_y) = cell_state(RedBomb, 1);
           events_occurred |= RedBombDropped;
         } else {
           this->at(this->player_x, this->player_y) = cell_state(Empty);
         }
-        this->player_will_drop_bomb = false;
 
         this->player_x = new_player_x;
         this->player_y = new_player_y;
@@ -589,13 +589,13 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
 
         // if the player is pushing something, move it out of the way first
         cell_state* push_target_cell = NULL;
-        if ((impulse == Left) && player_target_cell->is_pushable_horizontal())
+        if ((actions.impulse == Left) && player_target_cell->is_pushable_horizontal())
           push_target_cell = &this->at(this->player_x - 2, this->player_y);
-        else if ((impulse == Right) && player_target_cell->is_pushable_horizontal())
+        else if ((actions.impulse == Right) && player_target_cell->is_pushable_horizontal())
           push_target_cell = &this->at(this->player_x + 2, this->player_y);
-        else if ((impulse == Up) && player_target_cell->is_pushable_vertical())
+        else if ((actions.impulse == Up) && player_target_cell->is_pushable_vertical())
           push_target_cell = &this->at(this->player_x, this->player_y - 2);
-        else if ((impulse == Down) && player_target_cell->is_pushable_vertical())
+        else if ((actions.impulse == Down) && player_target_cell->is_pushable_vertical())
           push_target_cell = &this->at(this->player_x, this->player_y + 2);
         if (push_target_cell && push_target_cell->type == Empty) {
           events_occurred |= ObjectPushed;
@@ -611,16 +611,13 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
           *player_target_cell = this->at(this->player_x, this->player_y);
           this->at(this->player_x, this->player_y) = target_cell_contents;
 
-          // just ignore bomb drops when pulling
-          this->player_will_drop_bomb = false;
-
-          if (impulse == Up)
+          if (actions.impulse == Up)
             this->player_y--;
-          else if (impulse == Down)
+          else if (actions.impulse == Down)
             this->player_y++;
-          else if (impulse == Left)
+          else if (actions.impulse == Left)
             this->player_x--;
-          else if (impulse == Right)
+          else if (actions.impulse == Right)
             this->player_x++;
 
         // check if the cell is edible - if so, eat it
@@ -635,21 +632,21 @@ uint64_t level_state::exec_frame(enum player_impulse impulse) {
 
           *player_target_cell = this->at(this->player_x, this->player_y);
           if (this->player_will_drop_bomb) {
-            events_occurred |= RedBombDropped;
+            this->player_will_drop_bomb = false;
             this->num_red_bombs--;
             this->at(this->player_x, this->player_y) = cell_state(RedBomb, 1);
+            events_occurred |= RedBombDropped;
           } else {
             this->at(this->player_x, this->player_y) = cell_state(Empty);
           }
-          this->player_will_drop_bomb = false;
 
-          if (impulse == Up)
+          if (actions.impulse == Up)
             this->player_y--;
-          else if (impulse == Down)
+          else if (actions.impulse == Down)
             this->player_y++;
-          else if (impulse == Left)
+          else if (actions.impulse == Left)
             this->player_x--;
-          else if (impulse == Right)
+          else if (actions.impulse == Right)
             this->player_x++;
         }
       }

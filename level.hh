@@ -21,6 +21,11 @@ enum player_impulse {
   Right,
 };
 
+struct player_actions {
+  enum player_impulse impulse;
+  bool drop_bomb;
+};
+
 enum block_fall_action {
   Resting = 0,
   Falling,
@@ -162,8 +167,7 @@ struct level_state {
   int compute_entropy() const;
   void compute_player_coordinates();
 
-  void player_drop_bomb();
-  uint64_t exec_frame(enum player_impulse impulse);
+  uint64_t exec_frame(const struct player_actions& actions);
 };
 
 vector<level_state> import_supaplex_levels(const char* filename);

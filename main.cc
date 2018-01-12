@@ -323,16 +323,17 @@ static void render_cell(const cell_state& cell, int x, int y, int l_w, int l_h,
 }
 
 static void render_items_remaining(int items_remaining, int window_w, int window_h) {
-  if (items_remaining > 0)
+  if (items_remaining > 0) {
     draw_text(-0.99, -0.9, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
         "%d item%s remaining", items_remaining, plural(items_remaining));
-  else if (items_remaining < 0)
+  } else if (items_remaining < 0) {
     draw_text(-0.99, -0.9, 0, 1, 0.5, 1, (float)window_w / window_h, 0.01, false,
         "%d extra item%s", -items_remaining, plural(-items_remaining));
+  }
 }
 
 static void render_level_state(const level_state& l, int window_w, int window_h,
-    bool show_stats) {
+    bool show_stats, size_t recording_length, bool is_replay) {
   glBegin(GL_QUADS);
   for (int y = 0; y < l.h; y++)
     for (int x = 0; x < l.w; x++)
@@ -346,30 +347,39 @@ static void render_level_state(const level_state& l, int window_w, int window_h,
       render_cell_tris(l.at(x, y), x, y, l.w, l.h);
   glEnd();
 
+  float stats_base_y = -0.3 + (0.1 * is_replay);
   if (show_stats) {
     uint64_t empty_cells = l.count_cells_of_type(Empty);
     uint64_t attenuated_space = l.count_attenuated_space();
     uint64_t entropy = l.compute_entropy();
     glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
-    draw_text(-0.99, -0.4, 1, 1, 1, 1, (float)window_w / window_h, 0.01, false,
+    draw_text(-0.99, stats_base_y, 1, 1, 1, 1, (float)window_w / window_h, 0.01, false,
         "%d frame%s", l.frames_executed, plural(l.frames_executed));
-    draw_text(-0.99, -0.5, 1, 1, 1, 1, (float)window_w / window_h, 0.01, false,
+    draw_text(-0.99, stats_base_y - 0.1, 1, 1, 1, 1, (float)window_w / window_h, 0.01, false,
+        "%d frame%s recorded", recording_length, plural(recording_length));
+    draw_text(-0.99, stats_base_y - 0.2, 1, 1, 1, 1, (float)window_w / window_h, 0.01, false,
         "%d empty cell%s", empty_cells, plural(empty_cells));
-    draw_text(-0.99, -0.6, 1, 1, 1, 1, (float)window_w / window_h, 0.01, false,
+    draw_text(-0.99, stats_base_y - 0.3, 1, 1, 1, 1, (float)window_w / window_h, 0.01, false,
         "%d attenuated cell%s", attenuated_space, plural(attenuated_space));
-    draw_text(-0.99, -0.7, 1, 1, 1, 1, (float)window_w / window_h, 0.01, false,
+    draw_text(-0.99, stats_base_y - 0.4, 1, 1, 1, 1, (float)window_w / window_h, 0.01, false,
         "%d bit%s of entropy", entropy, plural(entropy));
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   }
 
   render_items_remaining(l.num_items_remaining, window_w, window_h);
 
-  if (l.num_red_bombs > 0)
+  if (l.num_red_bombs > 0) {
     draw_text(-0.99, -0.8, 0, 1, 0.5, 1, (float)window_w / window_h, 0.01, false,
         "%d red bomb%s", l.num_red_bombs, plural(l.num_red_bombs));
-  else if (l.num_red_bombs < 0)
+  } else if (l.num_red_bombs < 0) {
     draw_text(-0.99, -0.8, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
         "%d red bomb%s in debt", -l.num_red_bombs, plural(-l.num_red_bombs));
+  }
+
+  if (is_replay) {
+    draw_text(-0.99, -0.7, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
+        "REPLAY");
+  }
 }
 
 
@@ -596,6 +606,7 @@ static void render_palette(const editor_cell_definition* selected_def, int l_w, 
 
 enum game_phase {
   Playing = 0,
+  Replaying,
   Paused,
   Instructions,
   Editing,
@@ -610,7 +621,9 @@ bool show_stats = false;
 bool player_did_lose = false;
 bool should_reload_state = false;
 bool should_play_sounds = true;
+bool player_will_drop_bomb = false;
 deque<enum player_impulse> recent_impulses;
+deque<struct player_actions> current_recording;
 enum player_impulse current_impulse = None;
 int level_index = -1;
 int should_change_to_level = -1;
@@ -675,19 +688,25 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
     } else if ((key == GLFW_KEY_S) && (mods & GLFW_MOD_SHIFT)) {
       should_play_sounds = !should_play_sounds;
 
-    } else if ((key == GLFW_KEY_I) && (phase == Editing))
+    } else if ((key == GLFW_KEY_I) && (phase == Editing)) {
       game.num_items_remaining = game.count_items();
 
-    else if (key == GLFW_KEY_ESCAPE) {
+    } else if ((key == GLFW_KEY_R) && (mods & GLFW_MOD_SHIFT)) {
+      should_change_to_level = level_index;
+      phase = Replaying;
+
+    } else if (key == GLFW_KEY_ESCAPE) {
       if (phase == Editing) {
         game.compute_player_coordinates();
         phase = Paused;
       } else if (phase == Instructions) {
         phase = Paused;
-      } else if ((phase == Playing) || game.frames_executed)
+      } else if ((phase == Playing) || game.frames_executed) {
+        phase = Paused;
         should_change_to_level = level_index;
-      else
+      } else {
         glfwSetWindowShouldClose(window, 1);
+      }
 
     } else if (key == GLFW_KEY_ENTER) {
       if (phase == Editing) {
@@ -700,18 +719,21 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
         phase = Paused;
       } else if (phase == Playing) {
         phase = Paused;
+      } else if (phase == Replaying) {
+        phase = Paused;
       } else {
         phase = Playing;
       }
       player_did_lose = false;
 
     } else if (key == GLFW_KEY_TAB) {
-      if (mods & GLFW_MOD_SHIFT)
+      if (mods & GLFW_MOD_SHIFT) {
         game.updates_per_second = 200.0f;
-      else if (game.updates_per_second == 20.0f)
+      } else if (game.updates_per_second == 20.0f) {
         game.updates_per_second = 2.0f;
-      else
+      } else {
         game.updates_per_second = 20.0f;
+      }
 
     } else if ((key == GLFW_KEY_LEFT) && ((phase == Playing) || (phase == Paused))) {
       current_impulse = Left;
@@ -733,7 +755,7 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
       recent_impulses.emplace_back(Down);
       phase = Playing;
       player_did_lose = false;
-    } else if ((key == GLFW_KEY_X) && ((phase == Playing) || (phase == Paused))) {
+    } else if ((key == GLFW_KEY_X) && ((phase == Playing) || (phase == Replaying) || (phase == Paused))) {
       show_stats = !show_stats;
     } else if ((key == GLFW_KEY_SPACE) && (phase != Instructions)) {
       if (phase == Editing) {
@@ -741,8 +763,8 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
           editor_palette_intensity = 0;
         else
           editor_palette_intensity = 512;
-      } else {
-        game.player_drop_bomb();
+      } else if ((phase == Playing) || (phase == Paused)) {
+        player_will_drop_bomb = true;
         phase = Playing;
         player_did_lose = false;
       }
@@ -763,8 +785,9 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
 static void glfw_mouse_button_cb(GLFWwindow* window, int button, int action,
     int mods) {
   // non-editing phases only use the keyboard
-  if (phase != Editing)
+  if (phase != Editing) {
     return;
+  }
 
   if (action == GLFW_RELEASE) {
     editor_drawing = false;
@@ -955,6 +978,7 @@ int main(int argc, char* argv[]) {
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   uint64_t last_update_time = now();
+  deque<struct player_actions>::iterator replay_iterator;
 
   while (!glfwWindowShouldClose(window)) {
 
@@ -971,13 +995,13 @@ int main(int argc, char* argv[]) {
           "esc: exit");
 
     } else if (phase == Instructions) {
-      render_level_state(game, window_w, window_h, show_stats);
+      render_level_state(game, window_w, window_h, show_stats, current_recording.size(), false);
       render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f, 0.8f,
           0.0f, 0.0f, 0.0f, 0.1f);
       render_instructions_page(window_w, window_h, current_instructions_page);
 
     } else if (phase == Editing) {
-      render_level_state(game, window_w, window_h, false);
+      render_level_state(game, window_w, window_h, false, 0, false);
       if (editor_selected_cell_type) {
         render_cell(editor_selected_cell_type->st, editor_highlight_x,
             editor_highlight_y, game.w, game.h);
@@ -999,6 +1023,7 @@ int main(int argc, char* argv[]) {
       if (!game.player_is_alive() && (game.player_is_losing() == 1.0)) {
         phase = Paused;
         player_did_lose = true;
+        player_will_drop_bomb = false;
         game = initial_state[level_index];
 
       } else if (game.player_did_win) {
@@ -1008,21 +1033,27 @@ int main(int argc, char* argv[]) {
         // combine level stats
         level_completion& c = completion[level_index];
         c.state = Completed;
-        if (game.frames_executed < c.frames)
+        if (game.frames_executed < c.frames) {
           c.frames = game.frames_executed;
-        if (-game.num_items_remaining > c.extra_items)
+        }
+        if (-game.num_items_remaining > c.extra_items) {
           c.extra_items = -game.num_items_remaining;
-        if (game.num_red_bombs > c.extra_bombs)
+        }
+        if (game.num_red_bombs > c.extra_bombs) {
           c.extra_bombs = game.num_red_bombs;
+        }
         uint64_t cleared_space = game.count_cells_of_type(Empty);
-        if (cleared_space > c.cleared_space)
+        if (cleared_space > c.cleared_space) {
           c.cleared_space = cleared_space;
+        }
         uint64_t attenuated_space = game.count_attenuated_space();
-        if (attenuated_space < c.attenuated_space)
+        if (attenuated_space < c.attenuated_space) {
           c.attenuated_space = attenuated_space;
+        }
         uint64_t entropy = game.compute_entropy();
-        if (entropy < c.entropy)
+        if (entropy < c.entropy) {
           c.entropy = entropy;
+        }
 
         int next_level_index;
         if (level_index < initial_state.size() - 1) {
@@ -1035,16 +1066,25 @@ int main(int argc, char* argv[]) {
 
         if (next_level_index < initial_state.size()) {
           level_index = next_level_index;
+          player_will_drop_bomb = false;
+          current_recording.clear();
           game = initial_state[level_index];
           level_is_valid = game.validate();
-          if (completion[level_index].state != Completed)
+          if (completion[level_index].state != Completed) {
             completion[level_index].state = Attempted;
+          }
         }
         save_level_completion_state(level_completion_filename.c_str(), completion);
 
       } else if ((should_change_to_level >= 0) && (should_change_to_level < initial_state.size())) {
-        phase = Paused;
+        if (phase != Replaying) {
+          phase = Paused;
+        }
+        if (level_index != should_change_to_level) {
+          current_recording.clear();
+        }
         level_index = should_change_to_level;
+        player_will_drop_bomb = false;
         game = initial_state[level_index];
         if (completion[level_index].state == NotAttempted) {
           completion[level_index].state = Attempted;
@@ -1058,27 +1098,60 @@ int main(int argc, char* argv[]) {
         uint64_t now_time = now();
         uint64_t update_diff = now_time - last_update_time;
         if (update_diff >= usec_per_update) {
-          if (phase == Playing) {
-            enum player_impulse effective_impulse = current_impulse;
-            if (!recent_impulses.empty()) {
-              effective_impulse = recent_impulses.front();
-              recent_impulses.pop_front();
+          if ((phase == Playing) || (phase == Replaying)) {
+
+            struct player_actions actions;
+            if (phase == Playing) {
+              actions.impulse = current_impulse;
+              if (!recent_impulses.empty()) {
+                actions.impulse = recent_impulses.front();
+                recent_impulses.pop_front();
+              }
+              if (actions.impulse != player_impulse::None) {
+                actions.drop_bomb = player_will_drop_bomb;
+                player_will_drop_bomb = false;
+              } else {
+                actions.drop_bomb = false;
+              }
+              if (current_recording.size() >= game.frames_executed) {
+                current_recording.resize(game.frames_executed);
+              }
+              current_recording.emplace_back(actions);
+
+            } else if (phase == Replaying) {
+              if (game.frames_executed == 0) {
+                replay_iterator = current_recording.begin();
+              }
+              if (replay_iterator == current_recording.end()) {
+                phase = Paused;
+              } else {
+                actions = *replay_iterator;
+                replay_iterator++;
+              }
             }
 
-            uint64_t events = game.exec_frame(effective_impulse);
-            if (should_play_sounds) {
-              if (events & (RedBombCollected | ItemCollected))
-                get_item_sound.play();
-              if (events & RedBombDropped)
-                drop_bomb_sound.play();
-              if (events & CircuitEaten)
-                circuit_eaten_sound.play();
-              if (events & (Exploded | ItemExploded))
-                explosion_sound.play();
-              if (events & ObjectLanded)
-                landing_sound.play();
-              if (events & ObjectPushed)
-                push_sound.play();
+            if (phase != Paused) {
+              uint64_t events = game.exec_frame(actions);
+              if (should_play_sounds) {
+                if (events & (RedBombCollected | ItemCollected)) {
+                  get_item_sound.play();
+                }
+                if (events & RedBombDropped) {
+                  drop_bomb_sound.play();
+                }
+                if (events & CircuitEaten) {
+                  circuit_eaten_sound.play();
+                }
+                if (events & (Exploded | ItemExploded)) {
+                  explosion_sound.play();
+                }
+                if (events & ObjectLanded) {
+                  landing_sound.play();
+                }
+                if (events & ObjectPushed) {
+                  push_sound.play();
+                }
+              }
             }
           }
           last_update_time = now_time;
@@ -1086,22 +1159,30 @@ int main(int argc, char* argv[]) {
       }
 
       if (!game.player_did_win) {
-        render_level_state(game, window_w, window_h, show_stats);
-        if (game.updates_per_second != 20.0f)
+        render_level_state(game, window_w, window_h, show_stats, current_recording.size(), phase == Replaying);
+        if (game.updates_per_second != 20.0f) {
           render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f,
               0.0f, 0.0f, 0.0f, 0.0f, 0.1f);
+        }
 
         double lose_overlay_intensity = game.player_is_losing();
-        if (lose_overlay_intensity != 0.0)
+        if (lose_overlay_intensity != 0.0) {
           render_stripe_animation(window_w, window_h, 100,
               1.0f, 0.0f, 0.0f, 0.6f * lose_overlay_intensity,
               1.0f, 0.0f, 0.0f, 0.1f * lose_overlay_intensity);
+        }
+
+        if (phase == Replaying) {
+          draw_text(-0.99, -0.7, 1, 0, 0, 1, (float)window_w / window_h, 0.01,
+              false, "REPLAY");
+        }
       }
 
-      if (phase == Paused)
+      if (phase == Paused) {
         render_paused_screen(window_w, window_h, completion, level_index,
             game.player_did_win, player_did_lose, game.frames_executed,
             should_play_sounds, show_stats);
+      }
     }
 
     glfwSwapBuffers(window);
