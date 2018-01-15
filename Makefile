@@ -1,6 +1,6 @@
 OBJECTS=main.o util.o level.o gl_text.o level_completion.o audio.o
 CXXFLAGS=-O0 -g -Wall -DMACOSX -Wno-deprecated-declarations -std=c++11 -I/usr/local/include
-LDFLAGS=-framework OpenAL -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo -g -std=c++11 -L/usr/local/lib -lglfw3
+LDFLAGS=-framework OpenAL -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo -g -std=c++11 -L/usr/local/lib -lglfw3 -lphosg
 EXECUTABLES=mbes
 
 all: mbes.app/Contents/MacOS/mbes

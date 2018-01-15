@@ -695,6 +695,13 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
       should_change_to_level = level_index;
       phase = Replaying;
 
+    // } else if ((key == GLFW_KEY_J) && (mods & GLFW_MOD_SHIFT)) {
+    //   save_recording("/Users/fuzziqersoftware/Desktop/mbes_recording",
+    //       current_recording);
+
+    // } else if ((key == GLFW_KEY_K) && (mods & GLFW_MOD_SHIFT)) {
+    //   current_recording = load_recording("/Users/fuzziqersoftware/Desktop/mbes_recording");
+
     } else if (key == GLFW_KEY_ESCAPE) {
       if (phase == Editing) {
         game.compute_player_coordinates();

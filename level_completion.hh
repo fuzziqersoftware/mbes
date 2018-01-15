@@ -5,11 +5,11 @@
 
 #include <GLFW/glfw3.h>
 
+#include <deque>
 #include <list>
 #include <stdexcept>
 #include <vector>
 
-using namespace std;
 
 enum level_completion_state {
   // these are saved in a file, so don't change the values of existing entries
@@ -40,6 +40,13 @@ struct level_completion {
   level_completion(const level_completion_v1& v1);
 };
 
-vector<level_completion> load_level_completion_state_v1(const string& filename);
-vector<level_completion> load_level_completion_state(const string& filename);
-void save_level_completion_state(const string& filename, const vector<level_completion>& lc);
+std::vector<level_completion> load_level_completion_state_v1(
+    const std::string& filename);
+std::vector<level_completion> load_level_completion_state(
+    const std::string& filename);
+void save_level_completion_state(const std::string& filename,
+    const std::vector<level_completion>& lc);
+
+std::deque<struct player_actions> load_recording(const std::string& filename);
+void save_recording(const std::string& filename,
+    const std::deque<struct player_actions>& recording);
