@@ -1,8 +1,10 @@
+#include <inttypes.h>
 #include <pwd.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/param.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -15,6 +17,7 @@
 
 #include <deque>
 #include <list>
+#include <phosg/Strings.hh>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -614,6 +617,8 @@ enum game_phase {
 
 string levels_filename = "";
 string default_levels_filename = "";
+string recordings_directory = "";
+string last_recording_filename = "";
 vector<level_state> initial_state;
 level_state game;
 game_phase phase = Paused;
@@ -695,12 +700,15 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
       should_change_to_level = level_index;
       phase = Replaying;
 
-    // } else if ((key == GLFW_KEY_J) && (mods & GLFW_MOD_SHIFT)) {
-    //   save_recording("/Users/fuzziqersoftware/Desktop/mbes_recording",
-    //       current_recording);
+    } else if ((key == GLFW_KEY_J) && (mods & GLFW_MOD_SHIFT)) {
+      last_recording_filename = string_printf("%s/level_%zu_%" PRId64 ".mbr",
+          recordings_directory.c_str(), level_index, now());
+      save_recording(last_recording_filename, current_recording);
 
-    // } else if ((key == GLFW_KEY_K) && (mods & GLFW_MOD_SHIFT)) {
-    //   current_recording = load_recording("/Users/fuzziqersoftware/Desktop/mbes_recording");
+    } else if ((key == GLFW_KEY_K) && (mods & GLFW_MOD_SHIFT)) {
+      if (!last_recording_filename.empty()) {
+        current_recording = load_recording(last_recording_filename);
+      }
 
     } else if (key == GLFW_KEY_ESCAPE) {
       if (phase == Editing) {
@@ -891,6 +899,7 @@ int main(int argc, char* argv[]) {
     CFRelease(path);
 #else
     // assume it's in the same working directory for now
+    default_levels_filename = "levels.dat";
     levels_filename = "levels.mbl";
 #endif
   }
@@ -908,6 +917,7 @@ int main(int argc, char* argv[]) {
   }
 
   struct passwd *pw = getpwuid(getuid());
+  recordings_directory = string(pw->pw_dir) + "/.mbes";
   string level_completion_filename = string(pw->pw_dir) + "/.mbes_progress";
   vector<level_completion> completion = load_level_completion_state(
       level_completion_filename);
@@ -916,6 +926,9 @@ int main(int argc, char* argv[]) {
         string(pw->pw_dir) + "/.mbes_completion");
   }
   completion.resize(initial_state.size());
+
+  // create the recordings dir if it doesn't exist
+  mkdir(recordings_directory.c_str(), 0755);
 
   if (level_index < 0) {
     // start at the first non-completed level
