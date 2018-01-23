@@ -32,6 +32,13 @@ using namespace std;
 
 
 
+// TODO use projection matrix to make this unnecessary
+float to_window(float x, float w) {
+  return ((x / w) * 2) - 1;
+}
+
+
+
 struct editor_cell_definition {
   cell_state st;
   const char* name;
@@ -616,7 +623,6 @@ enum game_phase {
 };
 
 string levels_filename = "";
-string default_levels_filename = "";
 string recordings_directory = "";
 string last_recording_filename = "";
 vector<level_state> initial_state;
@@ -888,10 +894,8 @@ int main(int argc, char* argv[]) {
     // the executable directory
     size_t p_len = strlen(p);
     if ((p_len >= 4) && !strcmp(p + p_len - 4, ".app")) {
-      default_levels_filename = string(p) + "/Contents/Resources/levels.dat";
       levels_filename = string(p) + "/Contents/Resources/levels.mbl";
     } else {
-      default_levels_filename = string(p) + "/levels.dat";
       levels_filename = string(p) + "/levels.mbl";
     }
 
@@ -899,7 +903,6 @@ int main(int argc, char* argv[]) {
     CFRelease(path);
 #else
     // assume it's in the same working directory for now
-    default_levels_filename = "levels.dat";
     levels_filename = "levels.mbl";
 #endif
   }
@@ -908,12 +911,7 @@ int main(int argc, char* argv[]) {
     initial_state = load_levels(levels_filename.c_str());
   } catch (const runtime_error& e) {
     fprintf(stderr, "can\'t load level index %s: %s\n", levels_filename.c_str(), e.what());
-    try {
-      initial_state = import_supaplex_levels(default_levels_filename.c_str());
-    } catch (const runtime_error& e) {
-      fprintf(stderr, "can\'t load level index %s: %s\n", default_levels_filename.c_str(), e.what());
-      return 1;
-    }
+    return 1;
   }
 
   struct passwd *pw = getpwuid(getuid());

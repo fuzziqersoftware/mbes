@@ -5,11 +5,10 @@
 
 #include <GLFW/glfw3.h>
 
+#include <deque>
 #include <list>
 #include <stdexcept>
 #include <vector>
-
-using namespace std;
 
 
 
@@ -98,7 +97,7 @@ struct cell_state {
   void write(FILE*) const;
 
   cell_state();
-  cell_state(cell_type type, int param = 0, bool moved = false);
+  cell_state(cell_type type, int32_t param = 0, bool moved = false);
 
   bool is_round() const;
   bool should_fall() const;
@@ -125,7 +124,7 @@ struct explosion_info {
   int32_t frames; // how many more frames before it occurs
   explosion_type type;
 
-  explosion_info(int x, int y, int size = 1, int frames = 0,
+  explosion_info(int32_t x, int32_t y, int32_t size = 1, int32_t frames = 0,
       explosion_type type = NormalExplosion);
 
   void read(FILE*);
@@ -142,8 +141,8 @@ struct level_state {
   uint64_t frames_executed;
   uint64_t player_lose_frame;
   double player_lose_buffer;
-  vector<cell_state> cells;
-  list<explosion_info> pending_explosions;
+  std::vector<cell_state> cells;
+  std::list<explosion_info> pending_explosions;
 
   float updates_per_second;
   bool player_will_drop_bomb;
@@ -155,21 +154,20 @@ struct level_state {
   void read(FILE*);
   void write(FILE*) const;
 
-  cell_state& at(int x, int y);
-  const cell_state& at(int x, int y) const;
-  void move_cell(int x, int y, player_impulse dir);
+  cell_state& at(int32_t x, int32_t y);
+  const cell_state& at(int32_t x, int32_t y) const;
+  void move_cell(int32_t x, int32_t y, player_impulse dir);
   bool player_is_alive() const;
   double player_is_losing() const;
   bool validate() const;
-  int count_items() const;
-  int count_cells_of_type(cell_type c) const;
-  int count_attenuated_space() const;
-  int compute_entropy() const;
+  size_t count_items() const;
+  size_t count_cells_of_type(cell_type c) const;
+  size_t count_attenuated_space() const;
+  size_t compute_entropy() const;
   void compute_player_coordinates();
 
   uint64_t exec_frame(const struct player_actions& actions);
 };
 
-vector<level_state> import_supaplex_levels(const char* filename);
-vector<level_state> load_levels(const char* filename);
-void save_levels(const vector<level_state>& levels, const char* filename);
+std::vector<level_state> load_levels(const char* filename);
+void save_levels(const std::vector<level_state>& levels, const char* filename);
