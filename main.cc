@@ -298,22 +298,22 @@ static void render_cell_quads(const cell_state& cell, int x, int y, int l_w,
 
 static void render_cell_tris(const cell_state& cell, int x, int y, int l_w,
     int l_h) {
-  if (cell.is_left_portal()) {
+  if (cell.is_portal(Left)) {
     glVertex3f(to_window(4 * x, 4 * l_w), -to_window(4 * y + 2, 4 * l_h), 1);
     glVertex3f(to_window(4 * x + 1, 4 * l_w), -to_window(4 * y + 1, 4 * l_h), 1);
     glVertex3f(to_window(4 * x + 1, 4 * l_w), -to_window(4 * y + 3, 4 * l_h), 1);
   }
-  if (cell.is_right_portal()) {
+  if (cell.is_portal(Right)) {
     glVertex3f(to_window(4 * x + 4, 4 * l_w), -to_window(4 * y + 2, 4 * l_h), 1);
     glVertex3f(to_window(4 * x + 3, 4 * l_w), -to_window(4 * y + 1, 4 * l_h), 1);
     glVertex3f(to_window(4 * x + 3, 4 * l_w), -to_window(4 * y + 3, 4 * l_h), 1);
   }
-  if (cell.is_up_portal()) {
+  if (cell.is_portal(Up)) {
     glVertex3f(to_window(4 * x + 2, 4 * l_w), -to_window(4 * y, 4 * l_h), 1);
     glVertex3f(to_window(4 * x + 1, 4 * l_w), -to_window(4 * y + 1, 4 * l_h), 1);
     glVertex3f(to_window(4 * x + 3, 4 * l_w), -to_window(4 * y + 1, 4 * l_h), 1);
   }
-  if (cell.is_down_portal()) {
+  if (cell.is_portal(Down)) {
     glVertex3f(to_window(4 * x + 2, 4 * l_w), -to_window(4 * y + 4, 4 * l_h), 1);
     glVertex3f(to_window(4 * x + 1, 4 * l_w), -to_window(4 * y + 3, 4 * l_h), 1);
     glVertex3f(to_window(4 * x + 3, 4 * l_w), -to_window(4 * y + 3, 4 * l_h), 1);
@@ -343,35 +343,53 @@ static void render_items_remaining(int items_remaining, int window_w, int window
 }
 
 static void render_level_state(const level_state& l, int window_w, int window_h,
-    bool show_stats, size_t recording_length, bool is_replay) {
+    bool show_stats, size_t recording_length, const char* phase_annotation = NULL,
+    bool rewinding = false) {
   glBegin(GL_QUADS);
-  for (int y = 0; y < l.h; y++)
-    for (int x = 0; x < l.w; x++)
+  for (int y = 0; y < l.h; y++) {
+    for (int x = 0; x < l.w; x++) {
       render_cell_quads(l.at(x, y), x, y, l.w, l.h);
+    }
+  }
   glEnd();
 
   glBegin(GL_TRIANGLES);
   glColor4f(1.0, 1.0, 1.0, 1.0);
-  for (int y = 0; y < l.h; y++)
-    for (int x = 0; x < l.w; x++)
+  for (int y = 0; y < l.h; y++) {
+    for (int x = 0; x < l.w; x++) {
       render_cell_tris(l.at(x, y), x, y, l.w, l.h);
+    }
+  }
   glEnd();
 
-  float stats_base_y = -0.3 + (0.1 * is_replay);
+  if (rewinding) {
+    glBegin(GL_QUADS);
+    glColor4f(0.5, 0.5, 0.6, 0.6);
+    glVertex3f(-1.0, -1.0, 1.0);
+    glVertex3f(1.0, -1.0, 1.0);
+    glVertex3f(1.0, 1.0, 1.0);
+    glVertex3f(-1.0, 1.0, 1.0);
+    glEnd();
+  }
+
+  float stats_base_y = -0.2 + (0.1 * (phase_annotation != NULL));
   if (show_stats) {
     uint64_t empty_cells = l.count_cells_of_type(Empty);
     uint64_t attenuated_space = l.count_attenuated_space();
     uint64_t entropy = l.compute_entropy();
+    size_t undo_log_size = l.undo_log.size();
     glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO);
     draw_text(-0.99, stats_base_y, 1, 1, 1, 1, (float)window_w / window_h, 0.01, false,
         "%d frame%s", l.frames_executed, plural(l.frames_executed));
     draw_text(-0.99, stats_base_y - 0.1, 1, 1, 1, 1, (float)window_w / window_h, 0.01, false,
         "%d frame%s recorded", recording_length, plural(recording_length));
     draw_text(-0.99, stats_base_y - 0.2, 1, 1, 1, 1, (float)window_w / window_h, 0.01, false,
-        "%d empty cell%s", empty_cells, plural(empty_cells));
+        "%d event%s recorded", undo_log_size, plural(undo_log_size));
     draw_text(-0.99, stats_base_y - 0.3, 1, 1, 1, 1, (float)window_w / window_h, 0.01, false,
-        "%d attenuated cell%s", attenuated_space, plural(attenuated_space));
+        "%d empty cell%s", empty_cells, plural(empty_cells));
     draw_text(-0.99, stats_base_y - 0.4, 1, 1, 1, 1, (float)window_w / window_h, 0.01, false,
+        "%d attenuated cell%s", attenuated_space, plural(attenuated_space));
+    draw_text(-0.99, stats_base_y - 0.5, 1, 1, 1, 1, (float)window_w / window_h, 0.01, false,
         "%d bit%s of entropy", entropy, plural(entropy));
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   }
@@ -386,9 +404,9 @@ static void render_level_state(const level_state& l, int window_w, int window_h,
         "%d red bomb%s in debt", -l.num_red_bombs, plural(-l.num_red_bombs));
   }
 
-  if (is_replay) {
+  if (phase_annotation) {
     draw_text(-0.99, -0.7, 1, 0, 0, 1, (float)window_w / window_h, 0.01, false,
-        "REPLAY");
+        "%s", phase_annotation);
   }
 }
 
@@ -617,6 +635,7 @@ static void render_palette(const editor_cell_definition* selected_def, int l_w, 
 enum game_phase {
   Playing = 0,
   Replaying,
+  Rewinding,
   Paused,
   Instructions,
   Editing,
@@ -706,6 +725,9 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
       should_change_to_level = level_index;
       phase = Replaying;
 
+    } else if ((key == GLFW_KEY_Y) && (phase == Playing || phase == Paused)) {
+      phase = Rewinding;
+
     } else if ((key == GLFW_KEY_J) && (mods & GLFW_MOD_SHIFT)) {
       last_recording_filename = string_printf("%s/level_%zu_%" PRId64 ".mbr",
           recordings_directory.c_str(), level_index, now());
@@ -738,9 +760,7 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
           save_levels(initial_state, levels_filename.c_str());
         }
         phase = Paused;
-      } else if (phase == Playing) {
-        phase = Paused;
-      } else if (phase == Replaying) {
+      } else if ((phase == Playing) || (phase == Replaying) || (phase == Rewinding)) {
         phase = Paused;
       } else {
         phase = Playing;
@@ -776,7 +796,7 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
       recent_impulses.emplace_back(Down);
       phase = Playing;
       player_did_lose = false;
-    } else if ((key == GLFW_KEY_X) && ((phase == Playing) || (phase == Replaying) || (phase == Paused))) {
+    } else if ((key == GLFW_KEY_X) && ((phase == Playing) || (phase == Replaying) || (phase == Rewinding) || (phase == Paused))) {
       show_stats = !show_stats;
     } else if ((key == GLFW_KEY_SPACE) && (phase != Instructions)) {
       if (phase == Editing) {
@@ -798,8 +818,12 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
     if (((key == GLFW_KEY_LEFT) && (current_impulse == Left)) ||
         ((key == GLFW_KEY_RIGHT) && (current_impulse == Right)) ||
         ((key == GLFW_KEY_UP) && (current_impulse == Up)) ||
-        ((key == GLFW_KEY_DOWN) && (current_impulse == Down)))
+        ((key == GLFW_KEY_DOWN) && (current_impulse == Down))) {
       current_impulse = None;
+
+    } else if ((key == GLFW_KEY_Y) && (phase == Rewinding)) {
+      phase = Playing;
+    }
   }
 }
 
@@ -1013,13 +1037,13 @@ int main(int argc, char* argv[]) {
           "esc: exit");
 
     } else if (phase == Instructions) {
-      render_level_state(game, window_w, window_h, show_stats, current_recording.size(), false);
+      render_level_state(game, window_w, window_h, show_stats, current_recording.size());
       render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f, 0.8f,
           0.0f, 0.0f, 0.0f, 0.1f);
       render_instructions_page(window_w, window_h, current_instructions_page);
 
     } else if (phase == Editing) {
-      render_level_state(game, window_w, window_h, false, 0, false);
+      render_level_state(game, window_w, window_h, false, 0);
       if (editor_selected_cell_type) {
         render_cell(editor_selected_cell_type->st, editor_highlight_x,
             editor_highlight_y, game.w, game.h);
@@ -1116,6 +1140,13 @@ int main(int argc, char* argv[]) {
         uint64_t now_time = now();
         uint64_t update_diff = now_time - last_update_time;
         if (update_diff >= usec_per_update) {
+          if (phase == Rewinding) {
+            if (!game.frames_executed) {
+              phase = Paused;
+            } else {
+              game.rewind_frames(1);
+            }
+          }
           if ((phase == Playing) || (phase == Replaying)) {
 
             struct player_actions actions;
@@ -1177,7 +1208,14 @@ int main(int argc, char* argv[]) {
       }
 
       if (!game.player_did_win) {
-        render_level_state(game, window_w, window_h, show_stats, current_recording.size(), phase == Replaying);
+        const char* phase_annotation = NULL;
+        if (phase == Replaying) {
+          phase_annotation = "REPLAY";
+        } else if (phase == Rewinding) {
+          phase_annotation = "REWIND";
+        }
+        render_level_state(game, window_w, window_h, show_stats,
+            current_recording.size(), phase_annotation, (phase == Rewinding));
         if (game.updates_per_second != 20.0f) {
           render_stripe_animation(window_w, window_h, 100, 0.0f, 0.0f, 0.0f,
               0.0f, 0.0f, 0.0f, 0.0f, 0.1f);
@@ -1193,6 +1231,9 @@ int main(int argc, char* argv[]) {
         if (phase == Replaying) {
           draw_text(-0.99, -0.7, 1, 0, 0, 1, (float)window_w / window_h, 0.01,
               false, "REPLAY");
+        } else if (phase == Rewinding) {
+          draw_text(-0.99, -0.7, 1, 0, 0, 1, (float)window_w / window_h, 0.01,
+              false, "REWIND");
         }
       }
 

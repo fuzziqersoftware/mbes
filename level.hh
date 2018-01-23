@@ -8,16 +8,17 @@
 #include <deque>
 #include <list>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 
 
 enum player_impulse {
   None = 0,
-  Up,
-  Down,
-  Left,
-  Right,
+  Up = 1,
+  Down = 2,
+  Left = 3,
+  Right = 4,
 };
 
 struct player_actions {
@@ -105,27 +106,25 @@ struct cell_state {
   bool is_bomb() const;
   bool is_volatile() const;
   bool is_edible() const;
-  bool is_pushable_horizontal() const;
-  bool is_pushable_vertical() const;
+  bool is_pushable(player_impulse dir) const;
   bool is_pullable() const;
   bool is_dude() const;
   explosion_type get_explosion_type() const;
-  bool is_left_portal() const;
-  bool is_right_portal() const;
-  bool is_up_portal() const;
-  bool is_down_portal() const;
+  bool is_portal(player_impulse dir) const;
   bool is_jump_portal() const;
 };
 
 struct explosion_info {
+  uint64_t frame; // explosion occurs on this frame
   int32_t x;
   int32_t y;
   int32_t size;
-  int32_t frames; // how many more frames before it occurs
   explosion_type type;
 
-  explosion_info(int32_t x, int32_t y, int32_t size = 1, int32_t frames = 0,
+  explosion_info(uint64_t frame, int32_t x, int32_t y, int32_t size = 1,
       explosion_type type = NormalExplosion);
+
+  bool operator==(const explosion_info& other) const;
 
   void read(FILE*);
   void write(FILE*) const;
@@ -148,6 +147,37 @@ struct level_state {
   bool player_will_drop_bomb;
   bool player_did_win;
 
+  struct undo_log_entry {
+    enum class entry_type {
+      FrameMarker = 0,
+      Cell,
+      CreateExplosion,
+      ExecuteExplosion,
+      GetItem,
+      GetRedBomb,
+      DropRedBomb,
+    };
+    entry_type type;
+
+    union {
+      struct {
+        int32_t x;
+        int32_t y;
+        cell_state old_state;
+      } cell;
+
+      uint64_t frame;
+
+      explosion_info explosion;
+    };
+
+    undo_log_entry(entry_type type);
+    undo_log_entry(uint64_t frame);
+    undo_log_entry(int32_t x, int32_t y, const cell_state& old_state);
+    undo_log_entry(entry_type type, const explosion_info& explosion);
+  };
+  std::deque<undo_log_entry> undo_log;
+
   level_state(uint32_t w = 60, uint32_t h = 24, int32_t player_x = 1,
       int32_t player_y = 1);
 
@@ -155,8 +185,16 @@ struct level_state {
   void write(FILE*) const;
 
   cell_state& at(int32_t x, int32_t y);
+  cell_state& at(const std::pair<int32_t, int32_t>& pos);
   const cell_state& at(int32_t x, int32_t y) const;
-  void move_cell(int32_t x, int32_t y, player_impulse dir);
+  const cell_state& at(const std::pair<int32_t, int32_t>& pos) const;
+
+  void write_cell_to_undo_log(int32_t x, int32_t y);
+  void write_cell_to_undo_log(const std::pair<int32_t, int32_t>& pos);
+
+  void create_explosion(uint64_t frame, int32_t x, int32_t y, int32_t size = 1,
+      explosion_type type = NormalExplosion);
+
   bool player_is_alive() const;
   double player_is_losing() const;
   bool validate() const;
@@ -167,6 +205,8 @@ struct level_state {
   void compute_player_coordinates();
 
   uint64_t exec_frame(const struct player_actions& actions);
+  void rewind_frames(size_t count);
+  void rewind_frames_until(uint64_t target_frame);
 };
 
 std::vector<level_state> load_levels(const char* filename);

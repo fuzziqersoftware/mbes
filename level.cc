@@ -16,8 +16,23 @@
 
 using namespace std;
 
-cell_state::cell_state() : type(Empty), param(1), moved(false) {
-}
+
+
+static const vector<pair<int32_t, int32_t>> offset_for_impulse({
+    {0, 0}, {0, -1}, {0, 1}, {-1, 0}, {1, 0}});
+
+static const vector<player_impulse> left_turn_for_direction({
+    None, Left, Right, Down, Up});
+
+static const vector<player_impulse> right_turn_for_direction({
+    None, Right, Left, Up, Down});
+
+static const vector<player_impulse> opposite_direction_for_direction({
+    None, Down, Up, Right, Left});
+
+
+
+cell_state::cell_state() : type(Empty), param(1), moved(false) { }
 
 cell_state::cell_state(cell_type type, int32_t param, bool moved) : type(type),
     param(param), moved(moved) {
@@ -56,14 +71,19 @@ bool cell_state::is_edible() const {
          (this->type == YellowBombTrigger);
 }
 
-bool cell_state::is_pushable_horizontal() const {
-  return (this->type == Rock) || (this->type == GreenBomb) ||
-         (this->type == BlueBomb) || (this->type == YellowBomb) ||
-         (this->type == GrayBomb);
-}
-
-bool cell_state::is_pushable_vertical() const {
-  return (this->type == YellowBomb);
+bool cell_state::is_pushable(player_impulse dir) const {
+  switch (dir) {
+    case Left:
+    case Right:
+      return (this->type == Rock) || (this->type == GreenBomb) ||
+             (this->type == BlueBomb) || (this->type == YellowBomb) ||
+             (this->type == GrayBomb);
+    case Up:
+    case Down:
+      return (this->type == YellowBomb);
+    default:
+      return false;
+  }
 }
 
 bool cell_state::is_pullable() const {
@@ -84,28 +104,26 @@ explosion_type cell_state::get_explosion_type() const {
   return NormalExplosion;
 }
 
-bool cell_state::is_left_portal() const {
-  return (this->type == LeftPortal) || (this->type == HorizontalPortal) ||
-         (this->type == Portal) || (this->type == LeftJumpPortal) ||
-         (this->type == HorizontalJumpPortal) || (this->type == JumpPortal);
-}
-
-bool cell_state::is_right_portal() const {
-  return (this->type == RightPortal) || (this->type == HorizontalPortal) ||
-         (this->type == Portal) || (this->type == RightJumpPortal) ||
-         (this->type == HorizontalJumpPortal) || (this->type == JumpPortal);
-}
-
-bool cell_state::is_up_portal() const {
-  return (this->type == UpPortal) || (this->type == VerticalPortal) ||
-         (this->type == Portal) || (this->type == UpJumpPortal) ||
-         (this->type == VerticalJumpPortal) || (this->type == JumpPortal);
-}
-
-bool cell_state::is_down_portal() const {
-  return (this->type == DownPortal) || (this->type == VerticalPortal) ||
-         (this->type == Portal) || (this->type == DownJumpPortal) ||
-         (this->type == VerticalJumpPortal) || (this->type == JumpPortal);
+bool cell_state::is_portal(player_impulse dir) const {
+  if ((this->type == Portal) || (this->type == JumpPortal)) {
+    return true;
+  }
+  switch (dir) {
+    case Left:
+      return (this->type == LeftPortal) || (this->type == HorizontalPortal) ||
+             (this->type == LeftJumpPortal) || (this->type == HorizontalJumpPortal);
+    case Right:
+      return (this->type == RightPortal) || (this->type == HorizontalPortal) ||
+             (this->type == RightJumpPortal) || (this->type == HorizontalJumpPortal);
+    case Up:
+      return (this->type == UpPortal) || (this->type == VerticalPortal) ||
+             (this->type == UpJumpPortal) || (this->type == VerticalJumpPortal);
+    case Down:
+      return (this->type == DownPortal) || (this->type == VerticalPortal) ||
+             (this->type == DownJumpPortal) || (this->type == VerticalJumpPortal);
+    default:
+      return false;
+  }
 }
 
 bool cell_state::is_jump_portal() const {
@@ -130,9 +148,17 @@ void cell_state::write(FILE* f) const {
 
 
 
-explosion_info::explosion_info(int32_t x, int32_t y, int32_t size,
-    int32_t frames, explosion_type type) : x(x), y(y), size(size),
-    frames(frames), type(type) { }
+explosion_info::explosion_info(uint64_t frame, int32_t x, int32_t y,
+    int32_t size, explosion_type type) : frame(frame), x(x), y(y), size(size),
+    type(type) { }
+
+bool explosion_info::operator==(const explosion_info& other) const {
+  return (this->frame == other.frame) &&
+         (this->x == other.x) &&
+         (this->y == other.y) &&
+         (this->size == other.size) &&
+         (this->type == other.type);
+}
 
 void explosion_info::read(FILE* f) {
   freadx(f, this, sizeof(*this));
@@ -144,12 +170,26 @@ void explosion_info::write(FILE* f) const {
 
 
 
+level_state::undo_log_entry::undo_log_entry(entry_type type) : type(type) { }
+
+level_state::undo_log_entry::undo_log_entry(uint64_t frame) :
+    type(entry_type::FrameMarker), frame(frame) { }
+
+level_state::undo_log_entry::undo_log_entry(int32_t x, int32_t y,
+    const cell_state& old_state) : type(entry_type::Cell),
+    cell{x, y, old_state} { }
+
+level_state::undo_log_entry::undo_log_entry(entry_type type,
+    const explosion_info& explosion) : type(type), explosion(explosion) { }
+
+
+
 level_state::level_state(uint32_t w, uint32_t h, int32_t player_x,
     int32_t player_y) : w(w), h(h), player_x(player_x), player_y(player_y),
     num_items_remaining(0), num_red_bombs(0), frames_executed(0),
     player_lose_frame(0), player_lose_buffer(1), cells(w * h),
-    pending_explosions(), updates_per_second(20.0f),
-    player_will_drop_bomb(false), player_did_win(false) {
+    updates_per_second(20.0f), player_will_drop_bomb(false),
+    player_did_win(false) {
 
   for (int32_t x = 0; x < this->w; x++) {
     this->at(x, 0) = cell_state(Block);
@@ -162,6 +202,9 @@ level_state::level_state(uint32_t w, uint32_t h, int32_t player_x,
   if ((this->player_x >= 0) && (this->player_y >= 0)) {
     this->at(this->player_x, this->player_y) = cell_state(Player);
   }
+
+  // frame marker for frame 0
+  this->undo_log.emplace_back(0);
 }
 
 void level_state::read(FILE* f) {
@@ -182,7 +225,7 @@ void level_state::read(FILE* f) {
   freadx(f, &num_explosions, sizeof(num_explosions));
   this->pending_explosions.clear();
   for (uint64_t x = 0; x < num_explosions; x++) {
-    this->pending_explosions.emplace_back(0, 0);
+    this->pending_explosions.emplace_back(0, 0, 0);
     this->pending_explosions.back().read(f);
   }
 }
@@ -217,6 +260,10 @@ cell_state& level_state::at(int32_t x, int32_t y) {
   return this->cells[(y % this->h) * this->w + (x % this->w)];
 }
 
+cell_state& level_state::at(const pair<int32_t, int32_t>& pos) {
+  return this->at(pos.first, pos.second);
+}
+
 const cell_state& level_state::at(int32_t x, int32_t y) const {
   while (x < 0) {
     x += this->w;
@@ -227,20 +274,24 @@ const cell_state& level_state::at(int32_t x, int32_t y) const {
   return this->cells[(y % this->h) * this->w + (x % this->w)];
 }
 
-void level_state::move_cell(int32_t x, int32_t y, player_impulse dir) {
-  this->at(x, y).moved = true;
-  if (dir == Left) {
-    this->at(x - 1, y) = this->at(x, y);
-  } else if (dir == Right) {
-    this->at(x + 1, y) = this->at(x, y);
-  } else if (dir == Up) {
-    this->at(x, y - 1) = this->at(x, y);
-  } else if (dir == Down) {
-    this->at(x, y + 1) = this->at(x, y);
-  } else {
-    throw runtime_error("invalid direction");
-  }
-  this->at(x, y) = cell_state(Empty);
+const cell_state& level_state::at(const pair<int32_t, int32_t>& pos) const {
+  return this->at(pos.first, pos.second);
+}
+
+void level_state::write_cell_to_undo_log(int32_t x, int32_t y) {
+  this->undo_log.emplace_back(x, y, this->at(x, y));
+  this->undo_log.back().cell.old_state.moved = false;
+}
+
+void level_state::write_cell_to_undo_log(const pair<int32_t, int32_t>& pos) {
+  this->write_cell_to_undo_log(pos.first, pos.second);
+}
+
+void level_state::create_explosion(uint64_t frame, int32_t x, int32_t y,
+    int32_t size, explosion_type type) {
+  this->pending_explosions.emplace_back(frame, x, y, size, type);
+  this->undo_log.emplace_back(undo_log_entry::entry_type::CreateExplosion,
+                this->pending_explosions.back());
 }
 
 bool level_state::player_is_alive() const {
@@ -309,8 +360,8 @@ size_t level_state::compute_entropy() const {
   size_t entropy = 0;
   for (int32_t y = 0; y < this->h; y++) {
     for (int32_t x = 0; x < this->w; x++) {
-      entropy += (int)(this->at(x, y).type != this->at(x + 1, y).type) +
-                 (int)(this->at(x, y).type != this->at(x, y + 1).type);
+      entropy += (size_t)(this->at(x, y).type != this->at(x + 1, y).type) +
+                 (size_t)(this->at(x, y).type != this->at(x, y + 1).type);
     }
   }
   return entropy;
@@ -342,6 +393,7 @@ uint64_t level_state::exec_frame(const struct player_actions& actions) {
     for (int32_t x = 0; x < this->w; x++) {
       // rule #0: explosions disappear
       if (this->at(x, y).type == Explosion) {
+        this->write_cell_to_undo_log(x, y);
         this->at(x, y).param -= 16;
         if (this->at(x, y).param <= 0) {
           this->at(x, y) = cell_state(Empty);
@@ -352,22 +404,26 @@ uint64_t level_state::exec_frame(const struct player_actions& actions) {
       // anything on top of them
       if (this->at(x, y).type == Destroyer &&
           this->at(x, y - 1).type != Empty && this->at(x, y - 1).type != Explosion) {
-        this->pending_explosions.emplace_back(x, y - 1);
+        this->create_explosion(this->frames_executed, x, y - 1);
       }
       if (this->at(x, y).type == Deleter &&
           this->at(x, y - 1).type != Empty && this->at(x, y - 1).type != Explosion) {
+        this->write_cell_to_undo_log(x, y);
         this->at(x, y - 1) = cell_state(Empty);
       }
 
       // rule #2: red bombs attenuate, then explode
       if (this->at(x, y).type == RedBomb && this->at(x, y).param) {
+        this->write_cell_to_undo_log(x, y);
         this->at(x, y).param += 16;
         if (this->at(x, y).param >= 256) {
-          this->pending_explosions.emplace_back(x, y);
+          this->create_explosion(this->frames_executed, x, y);
         }
       }
 
       // rule #3: empty space attenuates
+      // this is the only change that isn't written to the undo log - you can't
+      // un-attenuate space by undoing mistakes!
       if (this->at(x, y).type == Empty) {
         int32_t param = this->at(x, y).param;
         if ((param && param < 256) ||
@@ -383,16 +439,25 @@ uint64_t level_state::exec_frame(const struct player_actions& actions) {
       if (this->at(x, y).should_fall() && !this->at(x, y).moved) {
         if (this->at(x, y + 1).type == Empty) {
           events_occurred |= ObjectFalling;
+          this->write_cell_to_undo_log(x, y + 1);
+          this->write_cell_to_undo_log(x, y);
           this->at(x, y + 1) = cell_state(this->at(x, y).type, Falling, true);
           this->at(x, y) = cell_state(Empty);
+
+        // if the faller landed on a bomb, the bomb explodes immediately
         } else if (this->at(x, y + 1).is_volatile() && (this->at(x, y).param == Falling)) {
-          this->pending_explosions.emplace_back(x, y + 1, 1, 0, this->at(x, y + 1).get_explosion_type());
+          this->create_explosion(this->frames_executed, x, y + 1, 1, this->at(x, y + 1).get_explosion_type());
+
+        // if the faller IS a bomb, it explodes two frames later
         } else if (this->at(x, y).is_bomb() && (this->at(x, y).param == Falling)) {
-          this->pending_explosions.emplace_back(x, y, 1, 2, this->at(x, y).get_explosion_type());
+          this->create_explosion(this->frames_executed + 2, x, y, 1, this->at(x, y).get_explosion_type());
           events_occurred |= ObjectLanded;
+          this->write_cell_to_undo_log(x, y);
           this->at(x, y).param = Resting;
+
         } else {
           if (this->at(x, y).param == Falling) {
+            this->write_cell_to_undo_log(x, y);
             events_occurred |= ObjectLanded;
           }
           this->at(x, y).param = Resting;
@@ -403,9 +468,13 @@ uint64_t level_state::exec_frame(const struct player_actions& actions) {
       if (this->at(x, y).should_fall() && this->at(x, y).is_round() &&
           this->at(x, y + 1).is_round() && !this->at(x, y).moved) {
         if (this->at(x - 1, y).type == Empty && this->at(x - 1, y + 1).type == Empty) {
+          this->write_cell_to_undo_log(x - 1, y);
+          this->write_cell_to_undo_log(x, y);
           this->at(x - 1, y) = cell_state(this->at(x, y).type, Resting, true);
           this->at(x, y) = cell_state(Empty);
         } else if (this->at(x + 1, y).type == Empty && this->at(x + 1, y + 1).type == Empty) {
+          this->write_cell_to_undo_log(x + 1, y);
+          this->write_cell_to_undo_log(x, y);
           this->at(x + 1, y) = cell_state(this->at(x, y).type, Resting, true);
           this->at(x, y) = cell_state(Empty);
         }
@@ -413,53 +482,46 @@ uint64_t level_state::exec_frame(const struct player_actions& actions) {
 
       // rule #6: dudes move along their left wall
       if (this->at(x, y).is_dude() && !this->at(x, y).moved) {
+        this->write_cell_to_undo_log(x, y);
+
         bool should_check_backturn = this->at(x, y).param > 0;
 
-        this->at(x, y).param = abs(this->at(x, y).param);
-        if (abs(this->at(x, y).param) == Left) {
-          if (should_check_backturn && (this->at(x, y + 1).type == Empty)) {
-            this->at(x, y).param = -Down;
-          } else if (this->at(x - 1, y).type == Empty) {
-            this->move_cell(x, y, Left);
-          } else {
-            this->at(x, y).param = Up;
-          }
+        player_impulse facing_direction = static_cast<player_impulse>(abs(this->at(x, y).param));
+        player_impulse left_turn_direction = left_turn_for_direction.at(facing_direction);
+        player_impulse right_turn_direction = right_turn_for_direction.at(facing_direction);
+        const auto& forward_offset = offset_for_impulse.at(facing_direction);
+        const auto& left_offset = offset_for_impulse.at(left_turn_direction);
+        const auto forward_pos = make_pair(x + forward_offset.first, y + forward_offset.second);
+        const auto left_pos = make_pair(x + left_offset.first, y + left_offset.second);
+        auto& forward_cell = this->at(forward_pos);
+        const auto& left_cell = this->at(left_pos);
 
-        } else if (abs(this->at(x, y).param) == Up) {
-          if (should_check_backturn && (this->at(x - 1, y).type == Empty)) {
-            this->at(x, y).param = -Left;
-          } else if (this->at(x, y - 1).type == Empty) {
-            this->move_cell(x, y, Up);
-          } else {
-            this->at(x, y).param = Right;
-          }
-
-        } else if (abs(this->at(x, y).param) == Right) {
-          if (should_check_backturn && (this->at(x, y - 1).type == Empty)) {
-            this->at(x, y).param = -Up;
-          } else if (this->at(x + 1, y).type == Empty) {
-            this->move_cell(x, y, Right);
-          } else {
-            this->at(x, y).param = Down;
-          }
-
-        } else if (abs(this->at(x, y).param) == Down) {
-          if (should_check_backturn && (this->at(x + 1, y).type == Empty)) {
-            this->at(x, y).param = -Right;
-          } else if (this->at(x, y + 1).type == Empty) {
-            this->move_cell(x, y, Down);
-          } else {
-            this->at(x, y).param = Left;
-          }
+        this->write_cell_to_undo_log(x, y);
+        if (should_check_backturn && (left_cell.type == Empty)) {
+          this->at(x, y).param = -left_turn_direction;
+        } else if (forward_cell.type == Empty) {
+          this->write_cell_to_undo_log(forward_pos.first, forward_pos.second);
+          forward_cell = this->at(x, y);
+          forward_cell.moved = true;
+          forward_cell.param = abs(forward_cell.param);
+          this->at(x, y) = cell_state(Empty);
+        } else {
+          this->at(x, y).param = right_turn_direction;
         }
       }
 
-      // rule #7: rock generators generate rocks periodically if there's space below them
+      // rule #7: rock generators generate rocks periodically if there's space
+      // below them
       if (this->at(x, y).type == RockGenerator) {
         if (this->at(x, y + 1).type != Empty) {
-          this->at(x, y).param = 0;
+          if (this->at(x, y).param != 0) {
+            this->write_cell_to_undo_log(x, y);
+            this->at(x, y).param = 0;
+          }
         } else {
+          this->write_cell_to_undo_log(x, y);
           if (this->at(x, y).param >= 16) {
+            this->write_cell_to_undo_log(x, y + 1);
             this->at(x, y + 1) = cell_state(Rock);
             this->at(x, y).param = 0;
           } else {
@@ -471,9 +533,9 @@ uint64_t level_state::exec_frame(const struct player_actions& actions) {
   }
 
   // process pending explosions
-  list<explosion_info> new_explosions;
-  for (auto it = this->pending_explosions.begin(); it != this->pending_explosions.end();) {
-    if (it->frames == 0) {
+  for (auto it = this->pending_explosions.begin();
+       it != this->pending_explosions.end();) {
+    if (it->frame == this->frames_executed) {
       events_occurred |= (it->type == ItemExplosion) ? ItemExploded : Exploded;
 
       for (int32_t yy = -it->size; yy <= it->size; yy++) {
@@ -487,9 +549,10 @@ uint64_t level_state::exec_frame(const struct player_actions& actions) {
               if (it->type == RockExplosion) {
                 new_type = RockExplosion;
               }
-              new_explosions.emplace_back(it->x + xx, it->y + yy, 1, 5,
-                  new_type);
+              this->create_explosion(this->frames_executed + 6, it->x + xx,
+                  it->y + yy, 1, new_type);
             }
+            this->write_cell_to_undo_log(it->x + xx, it->y + yy);
             if (it->type == ItemExplosion) {
               this->at(it->x + xx, it->y + yy) = cell_state(Item);
             } else if (it->type == RockExplosion) {
@@ -500,37 +563,36 @@ uint64_t level_state::exec_frame(const struct player_actions& actions) {
           }
         }
       }
+      this->undo_log.emplace_back(undo_log_entry::entry_type::ExecuteExplosion,
+          *it);
       it = this->pending_explosions.erase(it);
     } else {
-      it->frames--;
       it++;
     }
-  }
-  for (const auto& it : new_explosions) {
-    this->pending_explosions.push_back(it);
   }
 
   // if the player is losing or has lost, don't let them move
   if (this->player_is_alive()) {
+    const auto& forward_offset = offset_for_impulse.at(actions.impulse);
+
+    const auto player_target_pos = make_pair(
+        this->player_x + forward_offset.first,
+        this->player_y + forward_offset.second);
     cell_state* player_target_cell = NULL;
-    if (actions.impulse == Up) {
-      player_target_cell = &this->at(this->player_x, this->player_y - 1);
-    } else if (actions.impulse == Down) {
-      player_target_cell = &this->at(this->player_x, this->player_y + 1);
-    } else if (actions.impulse == Left) {
-      player_target_cell = &this->at(this->player_x - 1, this->player_y);
-    } else if (actions.impulse == Right) {
-      player_target_cell = &this->at(this->player_x + 1, this->player_y);
+    if (actions.impulse != None) {
+      player_target_cell = &this->at(player_target_pos);
     }
 
     if (player_target_cell) {
       if (player_target_cell->type == Item) {
         events_occurred |= ItemCollected;
         this->num_items_remaining--;
+        this->undo_log.emplace_back(undo_log_entry::entry_type::GetItem);
       }
       if (player_target_cell->type == RedBomb) {
         events_occurred |= RedBombCollected;
         this->num_red_bombs++;
+        this->undo_log.emplace_back(undo_log_entry::entry_type::GetRedBomb);
       }
       if ((player_target_cell->type == Exit) && (this->num_red_bombs >= 0) &&
           (this->num_items_remaining <= 0)) {
@@ -541,123 +603,79 @@ uint64_t level_state::exec_frame(const struct player_actions& actions) {
       // if the player is moving into a portal, put them on the other side of it
       // for jump portals, find a portal in the opposite direction along the
       // player's movement direction
+      pair<int32_t, int32_t> portal_target_pos;
       cell_state* portal_target_cell = NULL;
-      int32_t new_player_x, new_player_y;
-      if ((actions.impulse == Left) && player_target_cell->is_left_portal()) {
-        if (player_target_cell->is_jump_portal()) {
-          portal_target_cell = player_target_cell;
-          for (int32_t z = 2; z < this->w && portal_target_cell == player_target_cell; z++) {
-            if (this->at(this->player_x - z, this->player_y).is_right_portal()) {
-              portal_target_cell = &this->at(this->player_x - z - 1, this->player_y);
-              new_player_x = this->player_x - z - 1;
-              new_player_y = this->player_y;
-            }
-          }
-        } else {
-          portal_target_cell = &this->at(this->player_x - 2, this->player_y);
-          new_player_x = this->player_x - 2;
-          new_player_y = this->player_y;
-        }
 
-      } else if ((actions.impulse == Right) && player_target_cell->is_right_portal()) {
+      if (player_target_cell->is_portal(actions.impulse)) {
         if (player_target_cell->is_jump_portal()) {
-          portal_target_cell = player_target_cell;
-          for (int32_t z = 2; z < this->w && portal_target_cell == player_target_cell; z++) {
-            if (this->at(this->player_x + z, this->player_y).is_left_portal()) {
-              portal_target_cell = &this->at(this->player_x + z + 1, this->player_y);
-              new_player_x = this->player_x + z + 1;
-              new_player_y = this->player_y;
-            }
-          }
-        } else {
-          portal_target_cell = &this->at(this->player_x + 2, this->player_y);
-          new_player_x = this->player_x + 2;
-          new_player_y = this->player_y;
-        }
+          player_impulse opposite_dir = opposite_direction_for_direction.at(actions.impulse);
+          int32_t max_dist = ((actions.impulse == Left) || (actions.impulse == Right)) ? this->w : this->h;
 
-      } else if ((actions.impulse == Up) && player_target_cell->is_up_portal()) {
-        if (player_target_cell->is_jump_portal()) {
-          portal_target_cell = player_target_cell;
-          for (int32_t z = 2; z < this->h && portal_target_cell == player_target_cell; z++) {
-            if (this->at(this->player_x, this->player_y - z).is_down_portal()) {
-              portal_target_cell = &this->at(this->player_x, this->player_y - z - 1);
-              new_player_x = this->player_x;
-              new_player_y = this->player_y - z - 1;
+          for (int32_t z = 2; z < max_dist && !portal_target_cell; z++) {
+            if (this->at(this->player_x + z * forward_offset.first,
+                         this->player_y + z * forward_offset.second).is_portal(opposite_dir)) {
+              portal_target_pos.first = this->player_x + (z + 1) * forward_offset.first;
+              portal_target_pos.second = this->player_y + (z + 1) * forward_offset.second;
+              portal_target_cell = &this->at(portal_target_pos);
             }
           }
-        } else {
-          portal_target_cell = &this->at(this->player_x, this->player_y - 2);
-          new_player_x = this->player_x;
-          new_player_y = this->player_y - 2;
-        }
 
-      } else if ((actions.impulse == Down) && player_target_cell->is_down_portal()) {
-        if (player_target_cell->is_jump_portal()) {
-          portal_target_cell = player_target_cell;
-          for (int32_t z = 2; z < this->h && portal_target_cell == player_target_cell; z++) {
-            if (this->at(this->player_x, this->player_y + z).is_up_portal()) {
-              portal_target_cell = &this->at(this->player_x, this->player_y + z + 1);
-              new_player_x = this->player_x;
-              new_player_y = this->player_y + z + 1;
-            }
-          }
         } else {
-          portal_target_cell = &this->at(this->player_x, this->player_y + 2);
-          new_player_x = this->player_x;
-          new_player_y = this->player_y + 2;
+          portal_target_pos.first = this->player_x + 2 * forward_offset.first;
+          portal_target_pos.second = this->player_y + 2 * forward_offset.second;
+          portal_target_cell = &this->at(portal_target_pos);
         }
       }
 
-      if (portal_target_cell && portal_target_cell->type == Empty) {
+      if (portal_target_cell && (portal_target_cell->type == Empty)) {
+        this->write_cell_to_undo_log(portal_target_pos.first, portal_target_pos.second);
+        this->write_cell_to_undo_log(this->player_x, this->player_y);
+
         *portal_target_cell = this->at(this->player_x, this->player_y);
         if (this->player_will_drop_bomb) {
           this->player_will_drop_bomb = false;
           this->num_red_bombs--;
+          this->undo_log.emplace_back(undo_log_entry::entry_type::DropRedBomb);
           this->at(this->player_x, this->player_y) = cell_state(RedBomb, 1);
           events_occurred |= RedBombDropped;
         } else {
           this->at(this->player_x, this->player_y) = cell_state(Empty);
         }
 
-        this->player_x = new_player_x;
-        this->player_y = new_player_y;
+        this->player_x = portal_target_pos.first;
+        this->player_y = portal_target_pos.second;
 
       } else {
 
         // if the player is pushing something, move it out of the way first
-        cell_state* push_target_cell = NULL;
-        if ((actions.impulse == Left) && player_target_cell->is_pushable_horizontal()) {
-          push_target_cell = &this->at(this->player_x - 2, this->player_y);
-        } else if ((actions.impulse == Right) && player_target_cell->is_pushable_horizontal()) {
-          push_target_cell = &this->at(this->player_x + 2, this->player_y);
-        } else if ((actions.impulse == Up) && player_target_cell->is_pushable_vertical()) {
-          push_target_cell = &this->at(this->player_x, this->player_y - 2);
-        } else if ((actions.impulse == Down) && player_target_cell->is_pushable_vertical()) {
-          push_target_cell = &this->at(this->player_x, this->player_y + 2);
-        }
-        if (push_target_cell && push_target_cell->type == Empty) {
-          events_occurred |= ObjectPushed;
-          *push_target_cell = *player_target_cell;
-          *player_target_cell = cell_state(Empty);
+        if (player_target_cell->is_pushable(actions.impulse)) {
+          const auto push_target_pos = make_pair(
+              this->player_x + 2 * forward_offset.first,
+              this->player_y + 2 * forward_offset.second);
+          cell_state& push_target_cell = this->at(push_target_pos);
+
+          if (push_target_cell.type == Empty) {
+            events_occurred |= ObjectPushed;
+            this->write_cell_to_undo_log(push_target_pos);
+            this->write_cell_to_undo_log(player_target_pos);
+            push_target_cell = *player_target_cell;
+            *player_target_cell = cell_state(Empty);
+          }
         }
 
         // check if the cell is pullable - if so, pull it
         if (player_target_cell->is_pullable()) {
           events_occurred |= ObjectPushed;
 
+          this->write_cell_to_undo_log(player_target_pos);
+          this->write_cell_to_undo_log(this->player_x, this->player_y);
+
           cell_state target_cell_contents = *player_target_cell;
           *player_target_cell = this->at(this->player_x, this->player_y);
           this->at(this->player_x, this->player_y) = target_cell_contents;
 
-          if (actions.impulse == Up) {
-            this->player_y--;
-          } else if (actions.impulse == Down) {
-            this->player_y++;
-          } else if (actions.impulse == Left) {
-            this->player_x--;
-          } else if (actions.impulse == Right) {
-            this->player_x++;
-          }
+          this->player_x = player_target_pos.first;
+          this->player_y = player_target_pos.second;
 
         // check if the cell is edible - if so, eat it
         } else if (player_target_cell->is_edible()) {
@@ -665,7 +683,7 @@ uint64_t level_state::exec_frame(const struct player_actions& actions) {
             for (int32_t yy = 0; yy < this->h; yy++) {
               for (int32_t xx = 0; xx < this->w; xx++) {
                 if (this->at(xx, yy).type == YellowBomb) {
-                  this->pending_explosions.emplace_back(xx, yy);
+                  this->create_explosion(this->frames_executed + 1, xx, yy);
                 }
               }
             }
@@ -674,25 +692,22 @@ uint64_t level_state::exec_frame(const struct player_actions& actions) {
             events_occurred |= CircuitEaten;
           }
 
+          this->write_cell_to_undo_log(player_target_pos);
+          this->write_cell_to_undo_log(this->player_x, this->player_y);
+
           *player_target_cell = this->at(this->player_x, this->player_y);
           if (this->player_will_drop_bomb) {
             this->player_will_drop_bomb = false;
             this->num_red_bombs--;
+            this->undo_log.emplace_back(undo_log_entry::entry_type::DropRedBomb);
             this->at(this->player_x, this->player_y) = cell_state(RedBomb, 1);
             events_occurred |= RedBombDropped;
           } else {
             this->at(this->player_x, this->player_y) = cell_state(Empty);
           }
 
-          if (actions.impulse == Up) {
-            this->player_y--;
-          } else if (actions.impulse == Down) {
-            this->player_y++;
-          } else if (actions.impulse == Left) {
-            this->player_x--;
-          } else if (actions.impulse == Right) {
-            this->player_x++;
-          }
+          this->player_x = player_target_pos.first;
+          this->player_y = player_target_pos.second;
         }
       }
     }
@@ -719,8 +734,67 @@ uint64_t level_state::exec_frame(const struct player_actions& actions) {
   }
 
   this->frames_executed++;
+  this->undo_log.emplace_back(this->frames_executed);
 
   return events_occurred;
+}
+
+void level_state::rewind_frames(size_t count) {
+  uint64_t target_frame = (count > this->frames_executed) ? 0 : (this->frames_executed - count);
+  this->rewind_frames_until(target_frame);
+}
+
+void level_state::rewind_frames_until(uint64_t target_frame) {
+  while ((this->undo_log.back().type != undo_log_entry::entry_type::FrameMarker) ||
+         (this->undo_log.back().frame > target_frame)) {
+
+    const auto& e = undo_log.back();
+    switch (e.type) {
+      case undo_log_entry::entry_type::FrameMarker:
+        break;
+
+      case undo_log_entry::entry_type::Cell:
+        this->at(e.cell.x, e.cell.y) = e.cell.old_state;
+        if (e.cell.old_state.type == Player) {
+          this->player_x = e.cell.x;
+          this->player_y = e.cell.y;
+          this->player_lose_frame = 0;
+        }
+        break;
+
+      case undo_log_entry::entry_type::CreateExplosion:
+        // TODO: make this better than linear-time
+        for (auto it = this->pending_explosions.begin();
+             it != this->pending_explosions.end();) {
+          if (*it == e.explosion) {
+            it = this->pending_explosions.erase(it);
+          } else {
+            it++;
+          }
+        }
+        break;
+
+      case undo_log_entry::entry_type::ExecuteExplosion:
+        this->pending_explosions.emplace_back(e.explosion);
+        break;
+
+      case undo_log_entry::entry_type::GetItem:
+        this->num_items_remaining++;
+        break;
+
+      case undo_log_entry::entry_type::GetRedBomb:
+        this->num_red_bombs--;
+        break;
+
+      case undo_log_entry::entry_type::DropRedBomb:
+        this->num_red_bombs++;
+        break;
+    }
+
+    this->undo_log.pop_back();
+  }
+
+  this->frames_executed = undo_log.back().frame;
 }
 
 void level_state::compute_player_coordinates() {
