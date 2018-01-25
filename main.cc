@@ -64,6 +64,7 @@ const vector<vector<editor_cell_definition>> editor_available_cells({
     {GreenBomb, 0,            "green bomb", "the player can push these around and drop them on things. explodes when something falls on it or when it lands after falling."},
     {BlueBomb, 0,             "blue bomb", "behaves like a green bomb, but explodes into items."},
     {GrayBomb, 0,             "gray bomb", "behaves like a green bomb, but explodes into rocks."},
+    {WhiteBomb, 0,            "white bomb", "behaves like a green bomb, but explodes into blocks."},
     {YellowBombTrigger, 0,    "yellow trigger", "explodes all yellow bombs at once. otherwise, behaves like a circuit."},
     {BombDude, Left,          "bomb dude", "automaton. follows the wall to its left. explodes when something falls on it."},
     {ItemDude, Left,          "item dude", "behaves like a bomb dude, but explodes into items."},
@@ -205,6 +206,10 @@ static void render_cell_quads(const cell_state& cell, int x, int y, int l_w,
       break;
     case GrayBomb:
       glColor4f(0.6, 0.6, 0.6, alpha);
+      draw_center = true;
+      break;
+    case WhiteBomb:
+      glColor4f(0.8, 0.8, 0.8, alpha);
       draw_center = true;
       break;
     case RockGenerator:

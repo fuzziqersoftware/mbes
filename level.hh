@@ -67,12 +67,14 @@ enum cell_type {
   VerticalJumpPortal,
   JumpPortal,
   PullStone,
+  WhiteBomb,
 };
 
 enum explosion_type {
   NormalExplosion = 0,
   ItemExplosion,
   RockExplosion,
+  BlockExplosion,
 };
 
 enum events_mask {

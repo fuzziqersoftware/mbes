@@ -46,7 +46,7 @@ bool cell_state::is_round() const {
 bool cell_state::should_fall() const {
   return (this->type == Rock) || (this->type == Item) ||
          (this->type == GreenBomb) || (this->type == BlueBomb) ||
-         (this->type == GrayBomb);
+         (this->type == GrayBomb) || (this->type == WhiteBomb);
 }
 
 bool cell_state::destroyable() const {
@@ -57,8 +57,9 @@ bool cell_state::destroyable() const {
 bool cell_state::is_bomb() const {
   return (this->type == GreenBomb) || (this->type == RedBomb) ||
          (this->type == YellowBomb) || (this->type == BlueBomb) ||
-         (this->type == GrayBomb) || (this->type == ItemDude) ||
-         (this->type == BombDude) || (this->type == RockGenerator);
+         (this->type == GrayBomb) || (this->type == WhiteBomb) ||
+         (this->type == ItemDude) || (this->type == BombDude) ||
+         (this->type == RockGenerator);
 }
 
 bool cell_state::is_volatile() const {
@@ -77,7 +78,7 @@ bool cell_state::is_pushable(player_impulse dir) const {
     case Right:
       return (this->type == Rock) || (this->type == GreenBomb) ||
              (this->type == BlueBomb) || (this->type == YellowBomb) ||
-             (this->type == GrayBomb);
+             (this->type == GrayBomb) || (this->type == WhiteBomb);
     case Up:
     case Down:
       return (this->type == YellowBomb);
@@ -100,6 +101,9 @@ explosion_type cell_state::get_explosion_type() const {
   }
   if (this->type == GrayBomb) {
     return RockExplosion;
+  }
+  if (this->type == WhiteBomb) {
+    return BlockExplosion;
   }
   return NormalExplosion;
 }
@@ -543,11 +547,8 @@ uint64_t level_state::exec_frame(const struct player_actions& actions) {
           if (this->at(it->x + xx, it->y + yy).destroyable()) {
             if ((xx || yy) && this->at(it->x + xx, it->y + yy).is_volatile()) {
               explosion_type new_type = this->at(it->x + xx, it->y + yy).get_explosion_type();
-              if (it->type == ItemExplosion) {
-                new_type = ItemExplosion;
-              }
-              if (it->type == RockExplosion) {
-                new_type = RockExplosion;
+              if (it->type != NormalExplosion) {
+                new_type = it->type;
               }
               this->create_explosion(this->frames_executed + 6, it->x + xx,
                   it->y + yy, 1, new_type);
@@ -557,6 +558,8 @@ uint64_t level_state::exec_frame(const struct player_actions& actions) {
               this->at(it->x + xx, it->y + yy) = cell_state(Item);
             } else if (it->type == RockExplosion) {
               this->at(it->x + xx, it->y + yy) = cell_state(Rock);
+            } else if (it->type == BlockExplosion) {
+              this->at(it->x + xx, it->y + yy) = cell_state(Block);
             } else {
               this->at(it->x + xx, it->y + yy) = cell_state(Explosion, 255);
             }
