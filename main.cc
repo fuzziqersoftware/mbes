@@ -18,6 +18,7 @@
 #include <deque>
 #include <list>
 #include <phosg/Strings.hh>
+#include <phosg/Time.hh>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -26,7 +27,6 @@
 #include "gl_text.hh"
 #include "level.hh"
 #include "level_completion.hh"
-#include "util.hh"
 
 using namespace std;
 
