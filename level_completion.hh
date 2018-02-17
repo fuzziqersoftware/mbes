@@ -27,6 +27,16 @@ struct level_completion_v1 {
   uint64_t attenuated_space;
 };
 
+struct level_completion_v2 {
+  level_completion_state state;
+  uint64_t frames;
+  uint64_t extra_items;
+  uint64_t extra_bombs;
+  uint64_t cleared_space;
+  uint64_t attenuated_space;
+  uint64_t entropy;
+};
+
 struct level_completion {
   level_completion_state state;
   uint64_t frames;
@@ -35,9 +45,11 @@ struct level_completion {
   uint64_t cleared_space;
   uint64_t attenuated_space;
   uint64_t entropy;
+  uint64_t rewind_count;
 
   level_completion();
   level_completion(const level_completion_v1& v1);
+  level_completion(const level_completion_v2& v2);
 };
 
 std::vector<level_completion> load_level_completion_state_v1(

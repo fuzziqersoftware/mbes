@@ -377,7 +377,7 @@ static void render_level_state(const level_state& l, int window_w, int window_h,
     glEnd();
   }
 
-  float stats_base_y = -0.2 + (0.1 * (phase_annotation != NULL));
+  float stats_base_y = -0.1 + (0.1 * (phase_annotation != NULL));
   if (show_stats) {
     uint64_t empty_cells = l.count_cells_of_type(Empty);
     uint64_t attenuated_space = l.count_attenuated_space();
@@ -396,6 +396,8 @@ static void render_level_state(const level_state& l, int window_w, int window_h,
         "%d attenuated cell%s", attenuated_space, plural(attenuated_space));
     draw_text(-0.99, stats_base_y - 0.5, 1, 1, 1, 1, (float)window_w / window_h, 0.01, false,
         "%d bit%s of entropy", entropy, plural(entropy));
+    draw_text(-0.99, stats_base_y - 0.6, 1, 1, 1, 1, (float)window_w / window_h, 0.01, false,
+        "%d rewind%s", l.rewind_count, plural(l.rewind_count));
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   }
 
@@ -444,6 +446,8 @@ static void render_level_stats(const level_completion& lc, float aspect_ratio) {
       "Fewest attenuated cells: %llu", lc.attenuated_space);
   draw_text(0, -0.7, 1, 1, 1, 1, aspect_ratio, 0.01, true,
       "Least entropy: %llu", lc.entropy);
+  draw_text(0, -0.8, 1, 1, 1, 1, aspect_ratio, 0.01, true,
+      "Fewest rewinds: %llu", lc.rewind_count);
 }
 
 static void render_paused_screen(int window_w, int window_h,
@@ -731,6 +735,7 @@ static void glfw_key_cb(GLFWwindow* window, int key, int scancode,
       phase = Replaying;
 
     } else if ((key == GLFW_KEY_Y) && (phase == Playing || phase == Paused)) {
+      game.rewind_count++;
       phase = Rewinding;
 
     } else if ((key == GLFW_KEY_J) && (mods & GLFW_MOD_SHIFT)) {
@@ -1101,6 +1106,9 @@ int main(int argc, char* argv[]) {
         if (entropy < c.entropy) {
           c.entropy = entropy;
         }
+        if (game.rewind_count < c.rewind_count) {
+          c.rewind_count = game.rewind_count;
+        }
 
         int next_level_index;
         if (level_index < initial_state.size() - 1) {
@@ -1148,6 +1156,7 @@ int main(int argc, char* argv[]) {
           if (phase == Rewinding) {
             if (!game.frames_executed) {
               phase = Paused;
+              game.rewind_count = 0;
             } else {
               game.rewind_frames(1);
             }

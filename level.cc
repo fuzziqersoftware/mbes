@@ -12,7 +12,6 @@
 #include <vector>
 
 #include "level.hh"
-#include "util.hh"
 
 using namespace std;
 
@@ -191,7 +190,7 @@ level_state::undo_log_entry::undo_log_entry(entry_type type,
 level_state::level_state(uint32_t w, uint32_t h, int32_t player_x,
     int32_t player_y) : w(w), h(h), player_x(player_x), player_y(player_y),
     num_items_remaining(0), num_red_bombs(0), frames_executed(0),
-    player_lose_frame(0), player_lose_buffer(1), cells(w * h),
+    rewind_count(0), player_lose_frame(0), player_lose_buffer(1), cells(w * h),
     updates_per_second(20.0f), player_will_drop_bomb(false),
     player_did_win(false) {
 

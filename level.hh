@@ -140,6 +140,7 @@ struct level_state {
   int32_t num_items_remaining;
   int32_t num_red_bombs;
   uint64_t frames_executed;
+  uint64_t rewind_count;
   uint64_t player_lose_frame;
   double player_lose_buffer;
   std::vector<cell_state> cells;
