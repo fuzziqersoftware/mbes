@@ -897,6 +897,15 @@ static void glfw_mouse_move_cb(GLFWwindow* window, double x, double y) {
 }
 
 
+static void glfw_drop_cb(GLFWwindow* window, int count, const char** paths) {
+  if (count != 1) {
+    return;
+  }
+  const char* file = paths[0];
+  current_recording = load_recording(file);
+}
+
+
 static void glfw_focus_cb(GLFWwindow* window, int focused) {
   if ((focused == GL_FALSE) && (phase == Playing)) {
     phase = Paused;
@@ -1011,6 +1020,7 @@ int main(int argc, char* argv[]) {
   glfwSetMouseButtonCallback(window, glfw_mouse_button_cb);
   glfwSetCursorPosCallback(window, glfw_mouse_move_cb);
   glfwSetWindowFocusCallback(window, glfw_focus_cb);
+  glfwSetDropCallback(window, glfw_drop_cb);
 
   glfwMakeContextCurrent(window);
 
