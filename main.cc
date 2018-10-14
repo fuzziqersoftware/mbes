@@ -19,11 +19,11 @@
 #include <list>
 #include <phosg/Strings.hh>
 #include <phosg/Time.hh>
+#include <phosg-audio/Sound.hh>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
-#include "audio.hh"
 #include "gl_text.hh"
 #include "level.hh"
 #include "level_completion.hh"
@@ -985,12 +985,12 @@ int main(int argc, char* argv[]) {
   bool level_is_valid = game.validate();
 
   init_al();
-  sine_wave get_item_sound(880, 0.1);
-  sine_wave drop_bomb_sound(440, 0.1);
-  sine_wave circuit_eaten_sound(1760, 0.05);
-  split_noise explosion_sound(10, 1.5, 1.0, true);
-  split_noise landing_sound(10, 0.02, 1.0, false);
-  split_noise push_sound(10, 0.05, 1.0, false);
+  SineWave get_item_sound(880, 0.1);
+  SineWave drop_bomb_sound(440, 0.1);
+  SineWave circuit_eaten_sound(1760, 0.05);
+  SplitNoise explosion_sound(10, 1.5, 1.0, true);
+  SplitNoise landing_sound(10, 0.02, 1.0, false);
+  SplitNoise push_sound(10, 0.05, 1.0, false);
   // TODO more sounds
 
   if (!glfwInit()) {

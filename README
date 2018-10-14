@@ -37,6 +37,7 @@ Some notable differences from Supaplex's rules (if you've played Supaplex):
 Building from source:
 - Install Xcode (or some other variant of GCC).
 - Install GLFW (http://www.glfw.org/).
+- Install phosg and phosg-audio (http://github.com/fuzziqersoftware/phosg, http://github.com/fuzziqersoftware/phosg-audio).
 - Run `make`. This will create Move Blocks and Eat Stuff.app.
 - Run Move Blocks and Eat Stuff.app. Play the game. Be impressed with the
   graphics and sound.
